@@ -1,0 +1,3 @@
+[submodule "src/SynerClust"]
+	path = src/SynerClust
+	url = https://github.com/broadinstitute/SynerClust.git
