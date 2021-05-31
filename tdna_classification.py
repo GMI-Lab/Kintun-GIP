@@ -339,8 +339,8 @@ def determine_nomenclature(all_loci, ant_to_analyze, prefix):
                 x = 0
                 for tdna in tdnas_to_name[::-1]:
                     tdna.qualifiers['Kintun_VLI-tDNAclass'] = [prefix + "_" +
-                                                     loci_type[:4] +
-                                                     nomenclature_letters[x]]
+                                                               loci_type[:4] +
+                                                               nomenclature_letters[x]]
                     x = x + 1
 
 
@@ -353,10 +353,17 @@ def create_annotated_gbks(strain_codes, loci_collection):
                 new_features.append(new_feature)
             else:
                 continue
+        qualifiers_coll = []
+        for locus in loci_collection:
+            if locus.qualifiers['Kintun_VLI-tDNAclass'][0] not in qualifiers_coll:
+                qualifiers_coll.append(locus.qualifiers['Kintun_VLI-tDNAclass'][0])
+            else:
+                qualifiers_coll.append(locus.qualifiers['Kintun_VLI-tDNAclass'][0])
+                locus.qualifiers['Kintun_VLI-tDNAclass'][0] = locus.qualifiers['Kintun_VLI-tDNAclass'][0] + "_" + str(qualifiers_coll.count(locus.qualifiers['Kintun_VLI-tDNAclass'][0]))
         with open(strain) as infile:
             seq_annot = SeqIO.read(infile, 'genbank')
             for feature in seq_annot.features:
-                if feature.type not in ["tRNA","tmRNA"]:
+                if feature.type not in ["tRNA", "tmRNA"]:
                     new_features.append(feature)
                 else:
                     continue
