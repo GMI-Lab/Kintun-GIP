@@ -195,6 +195,7 @@ def set_anticodons(loci_collection):
     ant_out = list(set(ants_in_loci))
     return ant_out
 
+
 def generate_binary_data(anticodon, loci_to_analyze):
     posI_class = []
     posII_class = []
@@ -349,17 +350,19 @@ def create_annotated_gbks(strain_codes, loci_collection):
         new_features = []
         for locus in loci_collection:
             if locus.strain == strain:
-                new_feature = locus.record
-                new_features.append(new_feature)
+                new_feature = [tdna for tdna in locus.tdnas]
+                for tdna in new_feature:
+                    new_features.append(tdna)
             else:
                 continue
         qualifiers_coll = []
-        for locus in loci_collection:
-            if locus.qualifiers['Kintun_VLI-tDNAclass'][0] not in qualifiers_coll:
-                qualifiers_coll.append(locus.qualifiers['Kintun_VLI-tDNAclass'][0])
+        for feature in new_features:
+            tdna_name = feature.qualifiers['Kintun_VLI-tDNAclass'][0]
+            if tdna_name not in qualifiers_coll:
+                qualifiers_coll.append(tdna_name)
             else:
-                qualifiers_coll.append(locus.qualifiers['Kintun_VLI-tDNAclass'][0])
-                locus.qualifiers['Kintun_VLI-tDNAclass'][0] = locus.qualifiers['Kintun_VLI-tDNAclass'][0] + "_" + str(qualifiers_coll.count(locus.qualifiers['Kintun_VLI-tDNAclass'][0]))
+                qualifiers_coll.append(tdna_name)
+                feature.qualifiers['Kintun_VLI-tDNAclass'][0] = tdna_name + "_" + str(qualifiers_coll.count(tdna_name))
         with open(strain) as infile:
             seq_annot = SeqIO.read(infile, 'genbank')
             for feature in seq_annot.features:
