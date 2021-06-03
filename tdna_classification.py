@@ -13,7 +13,7 @@ import numpy as np
 import string
 
 
-# ESTAS LISTAS O DICCIONARIOS HAY QUE CONSTRUIRLOS DESDE LOS OUTPUTS
+# DEFINE DICTIONARIES FOR NOMENCLATURE BASIS
 
 def create_dics():
     dct_ant = dict(ACC='gly4', ATG='his2', ACA='cys2', ACG='arg1', ATC='asp2',
@@ -39,8 +39,9 @@ def create_dics():
               'tRNA-Pyl': 'O'}
     return dct_ant, aa_cod
 
-# COLECCIONA LOS LOCI PARA CLASIFICAR
-# Define clase locus, donde se carga la información
+# PART I. COLECT ALL t(m)DNAs loci
+# Class locus have all information for each locus to be considerated
+# to classification
 
 
 class locus():
@@ -195,15 +196,6 @@ def set_anticodons(loci_collection):
     return ant_out
 
 
-def hamming_distance(seq1, seq2):
-    distance = 0
-    L = len(seq1)
-    for i in range(L):
-        if seq1[i] != seq2[i]:
-            distance += 1
-    return float(distance/L)
-
-
 def generate_binary_data(anticodon, loci_to_analyze):
     posI_class = []
     posII_class = []
@@ -241,12 +233,6 @@ def clustering_loci(ant_to_analyze, all_loci):
             for loci in coll_loci:
                 sequences_by_strain[loci.strain] = []
             binary_data = generate_binary_data(ant_cod, coll_loci)
-            distance_matrix = []
-            for loci1 in binary_data:
-                distance_i = []
-                for loci2 in binary_data:
-                    distance_i.append(hamming_distance(loci1, loci2))
-                distance_matrix.append(distance_i)
             labels = fclusterdata(binary_data, len(coll_loci),
                                   criterion='maxclust', metric='hamming',
                                   method='ward')
@@ -276,11 +262,12 @@ def create_letter_list():
         list_alpha.append(list_alpha_original[i])
     for i in range(len(list_alpha_original)):
         for j in range(len(list_alpha_original)):
-            list_alpha.append(list_alpha_original[i]+list_alpha_original[j]) 
+            list_alpha.append(list_alpha_original[i]+list_alpha_original[j])
     for i in range(len(list_alpha_original)):
         for j in range(len(list_alpha_original)):
             for k in range(len(list_alpha_original)):
-                new_letter = list_alpha_original[i]+list_alpha_original[j]+list_alpha_original[k]
+                new_letter = (list_alpha_original[i] + list_alpha_original[j]
+                              + list_alpha_original[k])
                 list_alpha.append(new_letter)
     return list_alpha
 
@@ -290,7 +277,6 @@ def determine_nomenclature(all_loci, ant_to_analyze, prefix):
     for ant_cod in ant_to_analyze:
         coll_loci = []
         for locus in all_loci:
-            tdnas_in_loci = []
             if ant_cod in locus.anticodon_in_locus:
                 coll_loci.append(locus)
         contexts_types = []
@@ -354,8 +340,8 @@ def determine_nomenclature(all_loci, ant_to_analyze, prefix):
                 x = 0
                 for tdna in tdnas_to_name[::-1]:
                     tdna.qualifiers['Kintun_VLI-tDNAclass'] = [prefix + "_" +
-                                                     loci_type[:4] +
-                                                     nomenclature_letters[x]]
+                                                               loci_type[:4] +
+                                                               nomenclature_letters[x]]
                     x = x + 1
 
 
@@ -364,14 +350,23 @@ def create_annotated_gbks(strain_codes, loci_collection):
         new_features = []
         for locus in loci_collection:
             if locus.strain == strain:
-                new_feature = locus.record
-                new_features.append(new_feature)
+                new_feature = [tdna for tdna in locus.tdnas]
+                for tdna in new_feature:
+                    new_features.append(tdna)
             else:
                 continue
+        qualifiers_coll = []
+        for feature in new_features:
+            tdna_name = feature.qualifiers['Kintun_VLI-tDNAclass'][0]
+            if tdna_name not in qualifiers_coll:
+                qualifiers_coll.append(tdna_name)
+            else:
+                qualifiers_coll.append(tdna_name)
+                feature.qualifiers['Kintun_VLI-tDNAclass'][0] = tdna_name + "_" + str(qualifiers_coll.count(tdna_name))
         with open(strain) as infile:
             seq_annot = SeqIO.read(infile, 'genbank')
             for feature in seq_annot.features:
-                if feature.type not in ["tRNA","tmRNA"]:
+                if feature.type not in ["tRNA", "tmRNA"]:
                     new_features.append(feature)
                 else:
                     continue
