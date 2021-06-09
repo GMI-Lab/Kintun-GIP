@@ -106,7 +106,7 @@ def identifica_locus(strain_codes):
                     if len(UR_sequences) < 3:
                         if feature.type == 'CDS':
                             UR_sequences.append(feature)
-                        elif feature.type == 'tRNA':
+                        elif feature.type == 'tRNA' and 'tRNA-Stop' not in feature.qualifiers['note'][0]:
                             tdnas_UR.append(
                                 aa_cod[feature.qualifiers['product'][0]])
                         elif feature.type == 'rRNA':
@@ -122,7 +122,7 @@ def identifica_locus(strain_codes):
                     if len(DR_sequences) < 3:
                         if feature.type == 'CDS':
                             DR_sequences.append(feature)
-                        elif feature.type == 'tRNA':
+                        elif feature.type == 'tRNA' and 'tRNA-Stop' not in feature.qualifiers['note'][0]:
                             tdnas_DR.append(
                                 aa_cod[feature.qualifiers['product'][0]])
                         elif feature.type == 'rRNA':
