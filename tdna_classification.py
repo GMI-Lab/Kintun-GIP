@@ -44,109 +44,120 @@ def create_dics():
 # to classification
 
 
-class locus():
-    def __init__(locus, strain, tag):
-        locus.strain = strain
-        locus.tag = "%s_%s" % (strain, tag)
-        locus.sense = ''
-        locus.tdnas = []
-        locus.anticodon_in_locus = []
-        locus.UR_posI = ''
-        locus.UR_posII = ''
-        locus.UR_posIII = ''
-        locus.UR_groups = []
-        locus.pos_senses = []
-        locus.tdnas_in_UR = ''
-        locus.rdnas_in_UR = ''
-        locus.UR_I_class = []
-        locus.UR_II_class = []
-        locus.UR_III_class = []
-        locus.classification = []
-        locus.context_list = []
-        locus.record = []
+class locus:
+    def __init__(self, strain, tag):
+        self.strain = strain
+        self.tag = "%s_%s" % (strain, tag)
+        self.sense = ''
+        self.tdnas = []
+        self.anticodon_in_locus = []
+        self.UR_posI = ''
+        self.UR_posII = ''
+        self.UR_posIII = ''
+        self.UR_groups = []
+        self.pos_senses = []
+        self.tdnas_in_UR = ''
+        self.rdnas_in_UR = ''
+        self.UR_I_class = []
+        self.UR_II_class = []
+        self.UR_III_class = []
+        self.classification = []
+        self.context_list = []
+        self.record = []
 
 
 def identifica_locus(strain_codes):
+    global next_feature_index
     dct_ant, aa_cod = create_dics()
     loci_collection = []
     tag = 1
     for strain in strain_codes:
-        seq_annot = SeqIO.read(strain, 'genbank')
-        # Crea las listas de anotaciones
-        annotations_list = seq_annot.features
+        # Open GenBank file with annotated sequences
+        strain_sequence = SeqIO.read(strain, 'genbank')
+        annotations_list = strain_sequence.features
         # Busca en las listas los tDNAs o tmDNAs (sí, también tmDNAs, uhlalá)
-        x = 0
-        while x < len(annotations_list) - 1:
-            feature = annotations_list[x]
+        feature_index = 0
+        while feature_index in range(0,len(annotations_list)):
+            feature = annotations_list[feature_index]
             if feature.type in ['tRNA', 'tmRNA']:
                 new_locus = locus(strain, tag)
                 new_locus.sense = feature.strand
                 new_locus.tdnas.append(feature)
                 new_locus.record = feature
-                for idx in range(x+1, len(annotations_list)):
-                    if annotations_list[idx].type == 'tRNA' and new_locus.sense == annotations_list[idx].strand:
-                        new_locus.tdnas.append(annotations_list[idx])
+                for next_feature_index in range(feature_index+1, len(annotations_list)):
+                    if annotations_list[next_feature_index].type == 'tRNA':
+                        new_locus.tdnas.append(annotations_list[next_feature_index])
                         continue
                     else:
                         break
-                # Coordenadas del locus
-                locus_end = idx
-                x = idx
+                locus_end = next_feature_index
                 # Identifica si es un operon o una unidad mono o policistrónica
                 if len([new_locus.tdnas]) > 1:
-                    new_locus.classification = 'poly-tu'
+                    new_locus.classification = 'tdna_cluster'
                 else:
-                    new_locus.classification = 'mono-tu'
+                    new_locus.classification = 'tdna_single'
                 # Identifica las tres posiciones río arriba
-                UR_sequences = []
-                tdnas_UR = []
-                rdnas_UR = []
-                for feature in (annotations_list[:x][::-1] +
-                                annotations_list[::-1]):
-                    if len(UR_sequences) < 3:
+                features_ur, tdnas_ur, rdnas_ur = ([],) * 3
+                features_dr, tdnas_dr, rdnas_dr = ([],) * 3
+                for feature in (annotations_list[:feature_index][::-1] + annotations_list[::-1]):
+                    if len(features_ur) < 3:
                         if feature.type == 'CDS':
-                            UR_sequences.append(feature)
+                            features_ur.append(feature)
                         elif feature.type == 'tRNA' and 'tRNA-Stop' not in feature.qualifiers['note'][0]:
-                            tdnas_UR.append(
+                            tdnas_ur.append(
                                 aa_cod[feature.qualifiers['product'][0]])
                         elif feature.type == 'rRNA':
-                            rdnas_UR.append(feature.qualifiers['product'][0])
+                            rdnas_ur.append(feature.qualifiers['product'][0])
                         else:
                             continue
                     else:
                         break
-                DR_sequences = []
-                tdnas_DR = []
-                rdnas_DR = []
-                for feature in annotations_list[idx:] + annotations_list:
-                    if len(DR_sequences) < 3:
+                for feature in annotations_list[next_feature_index:] + annotations_list:
+                    if len(features_dr) < 3:
                         if feature.type == 'CDS':
-                            DR_sequences.append(feature)
+                            features_dr.append(feature)
                         elif feature.type == 'tRNA' and 'tRNA-Stop' not in feature.qualifiers['note'][0]:
-                            tdnas_DR.append(
+                            tdnas_dr.append(
                                 aa_cod[feature.qualifiers['product'][0]])
                         elif feature.type == 'rRNA':
-                            rdnas_DR.append(feature.qualifiers['product'][0])
+                            rdnas_dr.append(feature.qualifiers['product'][0])
                         else:
                             continue
                     else:
                         break
-                posi_keys = ['I', 'II', 'III']
+                position_keys = ['I', 'II', 'III']
                 for k in [0, 1, 2]:
                     if new_locus.sense == 1:
+                        # UR features, tdnas and rdnas
                         exec(
-                            "new_locus.UR_pos%s = UR_sequences[%s]" %
-                            (posi_keys[k], str(k))
+                            "new_locus.UR_pos%s = features_ur[%s]" %
+                            (position_keys[k], str(k))
                             )
-                        new_locus.tdnas_in_UR = tdnas_UR
-                        new_locus.rdnas_in_UR = rdnas_UR
+                        new_locus.tdnas_in_UR = tdnas_ur
+                        new_locus.rdnas_in_UR = rdnas_ur
+                        # DR features, tdnas, rdnas
+                        exec(
+                            "new_locus.DR_pos%s = features_dr[%s]" %
+                            (position_keys[k], str(k))
+                            )
+                        new_locus.tdnas_in_DR = tdnas_dr
+                        new_locus.rdnas_in_DR = rdnas_dr
                     else:
+                        # UR features, tdnas and rdnas
                         exec(
-                            "new_locus.UR_pos%s = DR_sequences[%s]" %
-                            (posi_keys[k], str(k))
-                            )
-                        new_locus.tdnas_in_UR = tdnas_DR
-                        new_locus.rdnas_in_UR = rdnas_DR
+                            "new_locus.UR_pos%s = features_dr[%s]" %
+                            (position_keys[k], str(k))
+                        )
+                        new_locus.tdnas_in_UR = tdnas_dr
+                        new_locus.rdnas_in_UR = rdnas_dr
+                        # DR features, tdnas, rdnas
+                        exec(
+                            "new_locus.DR_pos%s = features_ur[%s]" %
+                            (position_keys[k], str(k))
+                        )
+                        new_locus.tdnas_in_DR = tdnas_ur
+                        new_locus.rdnas_in_DR = rdnas_ur
+                # Consider CDS sense in loci
                 if new_locus.sense == 1:
                     for record in [
                             new_locus.UR_posI, new_locus.UR_posII,
@@ -158,6 +169,16 @@ def identifica_locus(strain_codes):
                         new_locus.UR_groups.append(
                             record.qualifiers['synerclust_group'][0] +
                             sense_code)
+                    for record in [
+                            new_locus.DR_posI, new_locus.DR_posII,
+                            new_locus.DR_posIII]:
+                        if record.strand == 1:
+                            sense_code = "_1"
+                        else:
+                            sense_code = "_0"
+                        new_locus.DR_groups.append(
+                            record.qualifiers['synerclust_group'][0] +
+                            sense_code)
                 else:
                     for record in [
                             new_locus.UR_posI, new_locus.UR_posII,
@@ -167,6 +188,16 @@ def identifica_locus(strain_codes):
                         else:
                             sense_code = "_1"
                         new_locus.UR_groups.append(
+                            record.qualifiers['synerclust_group'][0] +
+                            sense_code)
+                    for record in [
+                            new_locus.DR_posI, new_locus.DR_posII,
+                            new_locus.DR_posIII]:
+                        if record.strand == 1:
+                            sense_code = "_0"
+                        else:
+                            sense_code = "_1"
+                        new_locus.DR_groups.append(
                             record.qualifiers['synerclust_group'][0] +
                             sense_code)
                 anticodons = []
@@ -179,41 +210,30 @@ def identifica_locus(strain_codes):
                         anticodons.append('ssrA')
                 new_locus.anticodon_in_locus = anticodons
                 loci_collection.append(new_locus)
-                x = locus_end
+                feature_index = locus_end
                 tag = tag + 1
             else:
-                x = x + 1
+                feature += 1
                 continue
     return loci_collection
 
 
 def set_anticodons(loci_collection):
-    ants_in_loci = []
-    for tdna in loci_collection:
-        for i in tdna.anticodon_in_locus:
-            ants_in_loci.append(i)
-    ant_out = list(set(ants_in_loci))
+    ant_out = list(set([tdna.anticodon_in_locus for tdna in loci_collection]))
     return ant_out
 
 
 def generate_binary_data(anticodon, loci_to_analyze):
-    posI_class = []
-    posII_class = []
-    posIII_class = []
-    for loci in loci_to_analyze:
-        posI_class.append(loci.UR_groups[0])
-        posII_class.append(loci.UR_groups[1])
-        posIII_class.append(loci.UR_groups[2])
+    # Collect CDS identifiers from loci to analyze
+    posI_class =   [loci.UR_groups[0] for loci in loci_to_analyze]
+    posII_class =  [loci.UR_groups[1] for loci in loci_to_analyze]
+    posIII_class = [loci.UR_groups[2] for loci in loci_to_analyze]
+    # list_categories have all the identifiers
     list_categories = list(set(posI_class + posII_class + posIII_class))
+    # Create binary matrix for clustering
     binary_pos_collection = []
     for loci in loci_to_analyze:
-        binary_loci = []
-        classes_in_loci = loci.UR_groups
-        for cat in list_categories:
-            if cat in classes_in_loci:
-                binary_loci.append(1)
-            else:
-                binary_loci.append(0)
+        binary_loci = [1 if cat in loci.UR_groups else 0 for cat in list_categories]
         binary_pos_collection.append(binary_loci)
     return binary_pos_collection
 
@@ -222,13 +242,10 @@ def clustering_loci(ant_to_analyze, all_loci):
     dct_ant, aa_cod = create_dics()
     # Select loci
     for ant_cod in ant_to_analyze:
-        coll_loci = []
-        for loci in all_loci:
-            if ant_cod in loci.anticodon_in_locus:
-                coll_loci.append(loci)
-            else:
-                continue
-        if len(coll_loci) > 1:
+        coll_loci = [loci for loci in all_loci if ant_cod in loci.anticodon_in_locus]
+        if len(coll_loci) <= 1:
+            coll_loci[0].context_list.append("%s_%s" % (dct_ant[ant_cod], '1'))
+        else:
             sequences_by_strain = {}
             for loci in coll_loci:
                 sequences_by_strain[loci.strain] = []
@@ -239,8 +256,6 @@ def clustering_loci(ant_to_analyze, all_loci):
             for index in range(len(coll_loci)):
                 coll_loci[index].context_list.append("%s_%s" % (
                     dct_ant[ant_cod], labels[index]))
-        else:
-            coll_loci[0].context_list.append("%s_%s" % (dct_ant[ant_cod], '1'))
 
 
 class context_type:
