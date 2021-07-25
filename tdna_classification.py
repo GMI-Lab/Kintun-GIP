@@ -134,37 +134,32 @@ def identifica_locus(strain_codes):
                     else:
                         break
                 position_keys = ['I', 'II', 'III']
-                for k in [0, 1, 2]:
-                    if new_locus.sense == 1:
-                        # UR features, tdnas and rdnas
-                        exec(
-                            "new_locus.UR_pos%s = features_ur[%s]" %
-                            (position_keys[k], str(k))
-                            )
-                        new_locus.tdnas_in_UR = tdnas_ur
-                        new_locus.rdnas_in_UR = rdnas_ur
-                        # DR features, tdnas, rdnas
-                        exec(
-                            "new_locus.DR_pos%s = features_dr[%s]" %
-                            (position_keys[k], str(k))
-                            )
-                        new_locus.tdnas_in_DR = tdnas_dr
-                        new_locus.rdnas_in_DR = rdnas_dr
-                    else:
-                        # UR features, tdnas and rdnas
-                        exec(
-                            "new_locus.UR_pos%s = features_dr[%s]" %
-                            (position_keys[k], str(k))
-                        )
-                        new_locus.tdnas_in_UR = tdnas_dr
-                        new_locus.rdnas_in_UR = rdnas_dr
-                        # DR features, tdnas, rdnas
-                        exec(
-                            "new_locus.DR_pos%s = features_ur[%s]" %
-                            (position_keys[k], str(k))
-                        )
-                        new_locus.tdnas_in_DR = tdnas_ur
-                        new_locus.rdnas_in_DR = rdnas_ur
+                if new_locus.sense == 1:
+                    # (UR) --(t)-->
+                    new_locus.UR_posI = features_ur[0]
+                    new_locus.UR_posII = features_ur[1]
+                    new_locus.UR_posIII = features_ur[2]
+                    new_locus.tdnas_in_UR = tdnas_ur
+                    new_locus.rdnas_in_UR = rdnas_ur
+                    # --(t)--> DR
+                    new_locus.DR_posI = features_dr[0]
+                    new_locus.DR_posII = features_dr[1]
+                    new_locus.DR_posIII = features_dr[2]
+                    new_locus.tdnas_in_DR = tdnas_dr
+                    new_locus.rdnas_in_DR = rdnas_dr
+                else:
+                    # <--(t)-- UR
+                    new_locus.UR_posI = features_dr[0]
+                    new_locus.UR_posII = features_dr[1]
+                    new_locus.UR_posIII = features_dr[2]
+                    new_locus.tdnas_in_UR = tdnas_dr
+                    new_locus.rdnas_in_UR = rdnas_dr
+                    # DR <--(t)--
+                    new_locus.DR_posI = features_ur[0]
+                    new_locus.DR_posII = features_ur[1]
+                    new_locus.DR_posIII = features_ur[2]
+                    new_locus.tdnas_in_DR = tdnas_dr
+                    new_locus.rdnas_in_DR = rdnas_dr
                 # Consider CDS sense in loci
                 if new_locus.sense == 1:
                     for record in [
