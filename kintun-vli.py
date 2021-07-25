@@ -109,7 +109,7 @@ def main():
     logging.info("---------------")
     tdna_classification.tdna_classification(
         glob2.glob(os.path.abspath(args.results_dir) +
-                  "/*prokka/*_SC_results.gbk", recursive=True), args.prefix)
+                  "/*prokka/*_SC_results.gbk", recursive=True), args.prefix, args.threads)
     logging.info("---------------")
     logging.info("It seems classification is over, you can find tDNAS annotated in the final genbank files")
     logging.info("Have a good day!")
