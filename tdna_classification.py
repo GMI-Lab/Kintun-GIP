@@ -55,13 +55,20 @@ class locus:
         self.UR_posI = ''
         self.UR_posII = ''
         self.UR_posIII = ''
+        self.DR_posI = ''
+        self.DR_posII = ''
+        self.DR_posIII = ''
         self.UR_groups = []
+        self.DR_groups = []
         self.pos_senses = []
         self.tdnas_in_UR = ''
         self.rdnas_in_UR = ''
         self.UR_I_class = []
         self.UR_II_class = []
         self.UR_III_class = []
+        self.DR_I_class = []
+        self.DR_II_class = []
+        self.DR_III_class = []
         self.classification = []
         self.context_list = []
         self.record = []
@@ -238,6 +245,7 @@ def generate_binary_data_UR(anticodon, loci_to_analyze):
         binary_pos_collection.append(binary_loci)
     return binary_pos_collection
 
+
 def generate_binary_data_DR(anticodon, loci_to_analyze):
     # Collect CDS identifiers from loci to analyze
     posI_class = [loci.DR_groups[0] for loci in loci_to_analyze]
@@ -251,6 +259,7 @@ def generate_binary_data_DR(anticodon, loci_to_analyze):
         binary_loci = [1 if cat in loci.UR_groups else 0 for cat in list_categories]
         binary_pos_collection.append(binary_loci)
     return binary_pos_collection
+
 
 def clustering_loci(ant_to_analyze, all_loci):
     dct_ant, aa_cod = create_dics()
