@@ -77,7 +77,6 @@ def identifica_locus(strain_codes):
         strain_sequence = SeqIO.read(strain, 'genbank')
         annotations_list = strain_sequence.features
         # Busca en las listas los tDNAs o tmDNAs (sí, también tmDNAs, uhlalá)
-        feature_index = 0
         while feature_index in range(0,len(annotations_list)):
             feature = annotations_list[feature_index]
             if feature.type in ['tRNA', 'tmRNA']:
@@ -212,9 +211,9 @@ def identifica_locus(strain_codes):
                 new_locus.anticodon_in_locus = anticodons
                 loci_collection.append(new_locus)
                 feature_index = locus_end
-                tag = tag + 1
+                tag += 1
             else:
-                feature += 1
+                feature_index += 1
                 continue
     return loci_collection
 
