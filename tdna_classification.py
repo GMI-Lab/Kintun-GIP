@@ -11,7 +11,8 @@ from Bio import SeqIO
 from scipy.cluster.hierarchy import fclusterdata
 import numpy as np
 import string
-
+import multiprocessing
+from functools import partial
 
 # DEFINE DICTIONARIES FOR NOMENCLATURE BASIS
 
@@ -223,7 +224,7 @@ def set_anticodons(loci_collection):
     return ant_out
 
 
-def generate_binary_data(anticodon, loci_to_analyze):
+def generate_binary_data_UR(anticodon, loci_to_analyze):
     # Collect CDS identifiers from loci to analyze
     posI_class =   [loci.UR_groups[0] for loci in loci_to_analyze]
     posII_class =  [loci.UR_groups[1] for loci in loci_to_analyze]
@@ -237,6 +238,19 @@ def generate_binary_data(anticodon, loci_to_analyze):
         binary_pos_collection.append(binary_loci)
     return binary_pos_collection
 
+def generate_binary_data_DR(anticodon, loci_to_analyze):
+    # Collect CDS identifiers from loci to analyze
+    posI_class = [loci.DR_groups[0] for loci in loci_to_analyze]
+    posII_class = [loci.DR_groups[1] for loci in loci_to_analyze]
+    posIII_class = [loci.DR_groups[2] for loci in loci_to_analyze]
+    # list_categories have all the identifiers
+    list_categories = list(set(posI_class + posII_class + posIII_class))
+    # Create binary matrix for clustering
+    binary_pos_collection = []
+    for loci in loci_to_analyze:
+        binary_loci = [1 if cat in loci.UR_groups else 0 for cat in list_categories]
+        binary_pos_collection.append(binary_loci)
+    return binary_pos_collection
 
 def clustering_loci(ant_to_analyze, all_loci):
     dct_ant, aa_cod = create_dics()
@@ -244,18 +258,24 @@ def clustering_loci(ant_to_analyze, all_loci):
     for ant_cod in ant_to_analyze:
         coll_loci = [loci for loci in all_loci if ant_cod in loci.anticodon_in_locus]
         if len(coll_loci) <= 1:
-            coll_loci[0].context_list.append("%s_%s" % (dct_ant[ant_cod], '1'))
+            coll_loci[0].context_list.append("%s_%s_%s" % (dct_ant[ant_cod], '1', '1'))
         else:
             sequences_by_strain = {}
             for loci in coll_loci:
                 sequences_by_strain[loci.strain] = []
-            binary_data = generate_binary_data(ant_cod, coll_loci)
-            labels = fclusterdata(binary_data, len(coll_loci),
-                                  criterion='maxclust', metric='hamming',
-                                  method='ward')
+            binary_data_ur = generate_binary_data_UR(ant_cod, coll_loci)
+            labels_ur= fclusterdata(binary_data_ur, len(coll_loci),
+                                    criterion='maxclust', metric='hamming',
+                                    method='ward')
+            for loci in coll_loci:
+                sequences_by_strain[loci.strain] = []
+            binary_data_dr = generate_binary_data_UR(ant_cod, coll_loci)
+            labels_dr= fclusterdata(binary_data_dr, len(coll_loci),
+                                    criterion='maxclust', metric='hamming',
+                                    method='ward')
             for index in range(len(coll_loci)):
-                coll_loci[index].context_list.append("%s_%s" % (
-                    dct_ant[ant_cod], labels[index]))
+                coll_loci[index].context_list.append("%s_%s_%s" % (
+                    dct_ant[ant_cod], labels_ur[index], labels_dr[index]))
 
 
 class context_type:
@@ -290,46 +310,40 @@ def create_letter_list():
 def determine_nomenclature(all_loci, ant_to_analyze, prefix):
     dct_ant, aa_cod = create_dics()
     for ant_cod in ant_to_analyze:
-        coll_loci = []
-        for locus in all_loci:
-            if ant_cod in locus.anticodon_in_locus:
-                coll_loci.append(locus)
+        coll_loci = [loci for loci in all_loci if ant_cod in loci.anticodon_in_locus]
         contexts_types = []
         for locus in coll_loci:
-            for i in locus.context_list:
-                if dct_ant[ant_cod] in i and i not in contexts_types:
-                    contexts_types.append(i)
+            for context in locus.context_list:
+                if dct_ant[ant_cod] in context and context not in contexts_types:
+                    contexts_types.append(context)
                 else:
                     continue
         contexts_types_info = []
-        for i in contexts_types:
+        for context_type in contexts_types:
             strains = []
             list_number_tdnas = []
             for locus in coll_loci:
-                if i in locus.context_list:
+                if context in locus.context_list:
                     strains.append(locus.strain)
                     number_tdnas = []
                     for element in locus.tdnas:
-                        if element.type == "tRNA" and element.qualifiers['note'][0].split('(')[1].strip(')').upper() == ant_cod:
+                        if element.type == "tRNA" \
+                                and element.qualifiers['note'][0].split('(')[1].strip(')').upper() == ant_cod:
                             number_tdnas.append(element)
                         elif element.type == "tmRNA":
                             number_tdnas.append(element)
                         else:
                             continue
                 list_number_tdnas.append(len(number_tdnas))
-            contexts_type = context_type(i, len(strains), np.max(list_number_tdnas))
+            contexts_type = context_type(context, len(strains), np.max(list_number_tdnas))
             contexts_types_info.append(contexts_type)
-        # 1
-        # 2
-        # 3
-        contexts_types_info = sorted(contexts_types_info, key=lambda context_type:context_type.max_tdnas, reverse=True)
-        contexts_types_info = sorted(contexts_types_info, key=lambda context_type:context_type.num_strains, reverse=True)
+        contexts_types_info = sorted(contexts_types_info, key=lambda context_type: context_type.max_tdnas, reverse=True)
+        contexts_types_info = sorted(contexts_types_info, key=lambda context_type: context_type.num_strains,
+                                     reverse=True)
         list_alpha = create_letter_list()
-        counter = 0
-        for context in contexts_types_info:
-            for i in range(counter, counter + context.max_tdnas):
-                context.letters.append(list_alpha[i])
-            counter = counter + context.max_tdnas
+        #Cambié el sentido de esta lista, atencion
+        context.letters = [list_alpha[i] for i in range(0,context.max_tdnas)]
+
         for locus in coll_loci:
             for loci_type in locus.context_list:
                 if dct_ant[ant_cod] in loci_type:
@@ -360,40 +374,48 @@ def determine_nomenclature(all_loci, ant_to_analyze, prefix):
                     x = x + 1
 
 
-def create_annotated_gbks(strain_codes, loci_collection):
-    for strain in strain_codes:
-        new_features = []
-        for locus in loci_collection:
-            if locus.strain == strain:
-                new_feature = [tdna for tdna in locus.tdnas]
-                for tdna in new_feature:
-                    new_features.append(tdna)
+def create_annotated_gbks(loci_collection, strain):
+    new_features = []
+    for locus in loci_collection:
+        if locus.strain == strain:
+            new_feature = [tdna for tdna in locus.tdnas]
+            for tdna in new_feature:
+                new_features.append(tdna)
+        else:
+            continue
+    qualifiers_coll = []
+    for feature in new_features:
+        tdna_name = feature.qualifiers['Kintun_VLI-tDNAclass'][0]
+        if tdna_name not in qualifiers_coll:
+            qualifiers_coll.append(tdna_name)
+        else:
+            qualifiers_coll.append(tdna_name)
+            feature.qualifiers['Kintun_VLI-tDNAclass'][0] = tdna_name + "_" + str(qualifiers_coll.count(tdna_name))
+    with open(strain) as infile:
+        seq_annot = SeqIO.read(infile, 'genbank')
+        for feature in seq_annot.features:
+            if feature.type not in ["tRNA", "tmRNA"]:
+                new_features.append(feature)
             else:
                 continue
-        qualifiers_coll = []
-        for feature in new_features:
-            tdna_name = feature.qualifiers['Kintun_VLI-tDNAclass'][0]
-            if tdna_name not in qualifiers_coll:
-                qualifiers_coll.append(tdna_name)
-            else:
-                qualifiers_coll.append(tdna_name)
-                feature.qualifiers['Kintun_VLI-tDNAclass'][0] = tdna_name + "_" + str(qualifiers_coll.count(tdna_name))
-        with open(strain) as infile:
-            seq_annot = SeqIO.read(infile, 'genbank')
-            for feature in seq_annot.features:
-                if feature.type not in ["tRNA", "tmRNA"]:
-                    new_features.append(feature)
-                else:
-                    continue
-        seq_annot.features = new_features
-        with open(strain.replace("_SC_results.gbk",
-                                 "_KintunVLI_results.gbk"), 'w') as salida:
-            SeqIO.write(seq_annot, salida, "genbank")
+    seq_annot.features = new_features
+    with open(strain.replace("_SC_results.gbk",
+                             "_KintunVLI_results.gbk"), 'w') as salida:
+        SeqIO.write(seq_annot, salida, "genbank")
 
 
-def tdna_classification(gbks_list, prefix):
+def parallel_runs(strains, loci_collection, threads):
+    pool = multiprocessing.Pool(processes=threads)
+    temp = partial(create_annotated_gbks, loci_collection=loci_collection)
+    results = pool.map(func=temp, iterable=strains)
+    pool.close()
+    pool.join()
+
+
+def tdna_classification(gbks_list, prefix, threads):
     loci_collection = identifica_locus(gbks_list)
     ant_to_analyze = set_anticodons(loci_collection)
     clustering_loci(ant_to_analyze, loci_collection)
     determine_nomenclature(loci_collection, ant_to_analyze, prefix)
-    create_annotated_gbks(gbks_list, loci_collection)
+    # create_annotated_gbks(gbks_list, loci_collection)
+    parallel_runs(gbks_list, loci_collection, threads)
