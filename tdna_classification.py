@@ -419,3 +419,4 @@ def tdna_classification(gbks_list, prefix, threads):
     determine_nomenclature(loci_collection, ant_to_analyze, prefix)
     # create_annotated_gbks(gbks_list, loci_collection)
     parallel_runs(gbks_list, loci_collection, threads)
+    
