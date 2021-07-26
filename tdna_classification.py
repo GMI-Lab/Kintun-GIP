@@ -107,28 +107,28 @@ def identifica_locus(strain_codes):
                 # Identifica las tres posiciones río arriba
                 features_ur, tdnas_ur, rdnas_ur = ([],) * 3
                 features_dr, tdnas_dr, rdnas_dr = ([],) * 3
-                for feature in (annotations_list[:feature_index][::-1] + annotations_list[::-1]):
+                for new_feature in (annotations_list[:feature_index][::-1] + annotations_list[::-1]):
                     if len(features_ur) < 3:
-                        if feature.type == 'CDS':
-                            features_ur.append(feature)
-                        elif feature.type == 'tRNA' and 'tRNA-Stop' not in feature.qualifiers['note'][0]:
+                        if new_feature.type == 'CDS':
+                            features_ur.append(new_feature)
+                        elif new_feature.type == 'tRNA' and 'tRNA-Stop' not in new_feature.qualifiers['note'][0]:
                             tdnas_ur.append(
-                                aa_cod[feature.qualifiers['product'][0]])
+                                aa_cod[new_feature.qualifiers['product'][0]])
                         elif feature.type == 'rRNA':
-                            rdnas_ur.append(feature.qualifiers['product'][0])
+                            rdnas_ur.append(new_feature.qualifiers['product'][0])
                         else:
                             continue
                     else:
                         break
-                for feature in annotations_list[next_feature_index:] + annotations_list:
+                for new_feature in annotations_list[next_feature_index:] + annotations_list:
                     if len(features_dr) < 3:
-                        if feature.type == 'CDS':
-                            features_dr.append(feature)
-                        elif feature.type == 'tRNA' and 'tRNA-Stop' not in feature.qualifiers['note'][0]:
+                        if new_feature.type == 'CDS':
+                            features_dr.append(new_feature)
+                        elif new_feature.type == 'tRNA' and 'tRNA-Stop' not in new_feature.qualifiers['note'][0]:
                             tdnas_dr.append(
-                                aa_cod[feature.qualifiers['product'][0]])
-                        elif feature.type == 'rRNA':
-                            rdnas_dr.append(feature.qualifiers['product'][0])
+                                aa_cod[new_feature.qualifiers['product'][0]])
+                        elif new_feature.type == 'rRNA':
+                            rdnas_dr.append(new_feature.qualifiers['product'][0])
                         else:
                             continue
                     else:
