@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2ee526df-f102-43bf-bd47-b119268f7ca1" name="Default Changelist" comment="optimize lists and reduce lines">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tdna_classification.py" beforeDir="false" afterPath="$PROJECT_DIR$/tdna_classification.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -93,7 +94,7 @@
       <workItem from="1627226081988" duration="1207000" />
       <workItem from="1627228604678" duration="738000" />
       <workItem from="1627231331020" duration="3786000" />
-      <workItem from="1627502617924" duration="1923000" />
+      <workItem from="1627502617924" duration="3228000" />
     </task>
     <task id="LOCAL-00001" summary="optimize lists and reduce lines">
       <created>1627162619525</created>

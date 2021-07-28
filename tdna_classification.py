@@ -13,6 +13,7 @@ import numpy as np
 import string
 import multiprocessing
 from functools import partial
+import types
 
 # DEFINE DICTIONARIES FOR NOMENCLATURE BASIS
 
@@ -52,12 +53,12 @@ class locus:
         self.sense = ''
         self.tdnas = []
         self.anticodon_in_locus = []
-        self.UR_posI = ''
-        self.UR_posII = ''
-        self.UR_posIII = ''
-        self.DR_posI = ''
-        self.DR_posII = ''
-        self.DR_posIII = ''
+        self.UR_posI = types.SimpleNamespace()
+        self.UR_posII = types.SimpleNamespace()
+        self.UR_posIII = types.SimpleNamespace()
+        self.DR_posI = types.SimpleNamespace()
+        self.DR_posII = types.SimpleNamespace()
+        self.DR_posIII = types.SimpleNamespace()
         self.UR_groups = []
         self.DR_groups = []
         self.pos_senses = []
@@ -124,6 +125,7 @@ def identifica_locus(strain_codes):
                     if len(features_dr) < 3:
                         if new_feature.type == 'CDS':
                             features_dr.append(new_feature)
+                            print.new_feature.strand
                         elif new_feature.type == 'tRNA' and 'tRNA-Stop' not in new_feature.qualifiers['note'][0]:
                             tdnas_dr.append(
                                 aa_cod[new_feature.qualifiers['product'][0]])
@@ -166,7 +168,7 @@ def identifica_locus(strain_codes):
                     for feature_ur in [
                             new_locus.UR_posI, new_locus.UR_posII,
                             new_locus.UR_posIII]:
-                        if feature_ur.location.strand == 1:
+                        if feature_ur.strand == 1:
                             sense_code = "_1"
                         else:
                             sense_code = "_0"
@@ -176,7 +178,7 @@ def identifica_locus(strain_codes):
                     for feature_dr in [
                             new_locus.DR_posI, new_locus.DR_posII,
                             new_locus.DR_posIII]:
-                        if feature_dr.location.strand == 1:
+                        if feature_dr.strand == 1:
                             sense_code = "_1"
                         else:
                             sense_code = "_0"
@@ -187,7 +189,7 @@ def identifica_locus(strain_codes):
                     for feature_ur in [
                             new_locus.UR_posI, new_locus.UR_posII,
                             new_locus.UR_posIII]:
-                        if feature_ur.location.strand == 1:
+                        if feature_ur.strand == 1:
                             sense_code = "_0"
                         else:
                             sense_code = "_1"
@@ -197,7 +199,7 @@ def identifica_locus(strain_codes):
                     for feature_dr in [
                             new_locus.DR_posI, new_locus.DR_posII,
                             new_locus.DR_posIII]:
-                        if feature_dr.location.strand == 1:
+                        if feature_dr.strand == 1:
                             sense_code = "_0"
                         else:
                             sense_code = "_1"
