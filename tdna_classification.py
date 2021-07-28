@@ -125,7 +125,7 @@ def identifica_locus(strain_codes):
                     if len(features_dr) < 3:
                         if new_feature.type == 'CDS':
                             features_dr.append(new_feature)
-                            print.new_feature.strand
+                            print(new_feature.strand)
                         elif new_feature.type == 'tRNA' and 'tRNA-Stop' not in new_feature.qualifiers['note'][0]:
                             tdnas_dr.append(
                                 aa_cod[new_feature.qualifiers['product'][0]])
