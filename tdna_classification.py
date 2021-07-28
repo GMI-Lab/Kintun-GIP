@@ -46,33 +46,33 @@ def create_dics():
 # to classification
 
 
-class locus:
-    def __init__(self, strain, tag):
-        self.strain = strain
-        self.tag = "%s_%s" % (strain, tag)
-        self.sense = ''
-        self.tdnas = []
-        self.anticodon_in_locus = []
-        self.UR_posI = types.SimpleNamespace()
-        self.UR_posII = types.SimpleNamespace()
-        self.UR_posIII = types.SimpleNamespace()
-        self.DR_posI = types.SimpleNamespace()
-        self.DR_posII = types.SimpleNamespace()
-        self.DR_posIII = types.SimpleNamespace()
-        self.UR_groups = []
-        self.DR_groups = []
-        self.pos_senses = []
-        self.tdnas_in_UR = ''
-        self.rdnas_in_UR = ''
-        self.UR_I_class = []
-        self.UR_II_class = []
-        self.UR_III_class = []
-        self.DR_I_class = []
-        self.DR_II_class = []
-        self.DR_III_class = []
-        self.classification = []
-        self.context_list = []
-        self.record = []
+# class locus:
+#     def __init__(self, strain, tag):
+#         self.strain = strain
+#         self.tag = "%s_%s" % (strain, tag)
+#         self.sense = ''
+#         self.tdnas = []
+#         self.anticodon_in_locus = []
+#         self.UR_posI = types.SimpleNamespace()
+#         self.UR_posII = types.SimpleNamespace()
+#         self.UR_posIII = types.SimpleNamespace()
+#         self.DR_posI = types.SimpleNamespace()
+#         self.DR_posII = types.SimpleNamespace()
+#         self.DR_posIII = types.SimpleNamespace()
+#         self.UR_groups = []
+#         self.DR_groups = []
+#         self.pos_senses = []
+#         self.tdnas_in_UR = ''
+#         self.rdnas_in_UR = ''
+#         self.UR_I_class = []
+#         self.UR_II_class = []
+#         self.UR_III_class = []
+#         self.DR_I_class = []
+#         self.DR_II_class = []
+#         self.DR_III_class = []
+#         self.classification = []
+#         self.context_list = []
+#         self.record = []
 
 
 def identifica_locus(strain_codes):
@@ -89,7 +89,8 @@ def identifica_locus(strain_codes):
         while feature_index in range(0,len(annotations_list)):
             feature = annotations_list[feature_index]
             if feature.type in ['tRNA', 'tmRNA']:
-                new_locus = locus(strain, tag)
+                new_locus = lambda: None
+                #new_locus = locus(strain, tag)
                 new_locus.sense = feature.strand
                 new_locus.tdnas.append(feature)
                 new_locus.record = feature
