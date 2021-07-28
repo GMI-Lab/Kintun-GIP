@@ -166,7 +166,7 @@ def identifica_locus(strain_codes):
                     for feature_ur in [
                             new_locus.UR_posI, new_locus.UR_posII,
                             new_locus.UR_posIII]:
-                        if feature_ur.strand == 1:
+                        if feature_ur.location.strand == 1:
                             sense_code = "_1"
                         else:
                             sense_code = "_0"
@@ -176,7 +176,7 @@ def identifica_locus(strain_codes):
                     for feature_dr in [
                             new_locus.DR_posI, new_locus.DR_posII,
                             new_locus.DR_posIII]:
-                        if feature_dr.strand == 1:
+                        if feature_dr.location.strand == 1:
                             sense_code = "_1"
                         else:
                             sense_code = "_0"
@@ -187,7 +187,7 @@ def identifica_locus(strain_codes):
                     for feature_ur in [
                             new_locus.UR_posI, new_locus.UR_posII,
                             new_locus.UR_posIII]:
-                        if feature_ur.strand == 1:
+                        if feature_ur.location.strand == 1:
                             sense_code = "_0"
                         else:
                             sense_code = "_1"
@@ -197,7 +197,7 @@ def identifica_locus(strain_codes):
                     for feature_dr in [
                             new_locus.DR_posI, new_locus.DR_posII,
                             new_locus.DR_posIII]:
-                        if feature_dr.strand == 1:
+                        if feature_dr.location.strand == 1:
                             sense_code = "_0"
                         else:
                             sense_code = "_1"
