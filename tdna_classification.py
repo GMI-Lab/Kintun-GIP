@@ -134,6 +134,7 @@ def identifica_locus(strain_codes):
                     else:
                         break
                 position_keys = ['I', 'II', 'III']
+                print(features_ur[0])
                 if new_locus.sense == 1:
                     # (UR) --(t)-->
                     new_locus.UR_posI = features_ur[0]
