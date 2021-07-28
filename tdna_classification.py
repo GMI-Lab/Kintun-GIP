@@ -162,46 +162,46 @@ def identifica_locus(strain_codes):
                     new_locus.rdnas_in_DR = rdnas_dr
                 # Consider CDS sense in loci
                 if new_locus.sense == 1:
-                    for record in [
+                    for feature_ur in [
                             new_locus.UR_posI, new_locus.UR_posII,
                             new_locus.UR_posIII]:
-                        if record.strand == 1:
+                        if feature_ur.strand == 1:
                             sense_code = "_1"
                         else:
                             sense_code = "_0"
                         new_locus.UR_groups.append(
-                            record.qualifiers['synerclust_group'][0] +
+                            feature_ur.qualifiers['synerclust_group'][0] +
                             sense_code)
-                    for record in [
+                    for feature_dr in [
                             new_locus.DR_posI, new_locus.DR_posII,
                             new_locus.DR_posIII]:
-                        if record.strand == 1:
+                        if feature_dr.strand == 1:
                             sense_code = "_1"
                         else:
                             sense_code = "_0"
                         new_locus.DR_groups.append(
-                            record.qualifiers['synerclust_group'][0] +
+                            feature_dr.qualifiers['synerclust_group'][0] +
                             sense_code)
                 else:
-                    for record in [
+                    for feature_ur in [
                             new_locus.UR_posI, new_locus.UR_posII,
                             new_locus.UR_posIII]:
-                        if record.strand == 1:
+                        if feature_ur.strand == 1:
                             sense_code = "_0"
                         else:
                             sense_code = "_1"
                         new_locus.UR_groups.append(
-                            record.qualifiers['synerclust_group'][0] +
+                            feature_ur.qualifiers['synerclust_group'][0] +
                             sense_code)
-                    for record in [
+                    for feature_dr in [
                             new_locus.DR_posI, new_locus.DR_posII,
                             new_locus.DR_posIII]:
-                        if record.strand == 1:
+                        if feature_dr.strand == 1:
                             sense_code = "_0"
                         else:
                             sense_code = "_1"
                         new_locus.DR_groups.append(
-                            record.qualifiers['synerclust_group'][0] +
+                            feature_dr.qualifiers['synerclust_group'][0] +
                             sense_code)
                 anticodons = []
                 for element in new_locus.tdnas:
