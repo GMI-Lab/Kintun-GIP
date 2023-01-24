@@ -14,12 +14,7 @@ import logging
 import time
 import check_fasta
 import annotate_fasta
-#import shutil
-#import create_data_catalogue
-#import run_synerclust
-import glob2
-#import create_synerclust_qualifier
-import tdna_classification_woSynerclust
+import tdna_clusterization
 
 class Kintun:
     def __init__(self):
@@ -108,7 +103,7 @@ class Kintun:
         logging.info("---------------")
         logging.info("All your genomes are now annotated, yay! :D")
         logging.info("Finally it's time for tDNAs clusterization")
-        tdna_classification_woSynerclust.tdna_classification(args.fasta_dir, args.results_dir, args.file_extension, args.prefix)
+        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir, args.file_extension, args.prefix)
         #logging.info("---------------")
         #logging.info("It seems clusterization is over, you can find tDNAS annotated in the final genbank files")
         #logging.info("Have a good day!")
