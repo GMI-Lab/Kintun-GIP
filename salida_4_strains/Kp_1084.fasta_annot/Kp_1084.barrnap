@@ -1,0 +1,26 @@
+##gff-version 3
+Kp_1084	barrnap:0.9	rRNA	453977	455511	0	+	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	455713	458611	0	+	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	458733	458843	4.6e-11	+	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	458977	459086	2.8e-12	+	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	1210476	1212010	0	+	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	1212396	1215294	0	+	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	1215493	1215603	4.6e-11	+	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	4312490	4312600	4.6e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	4312701	4315599	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	4316032	4317566	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	4667652	4667762	4.6e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	4667866	4670764	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	4671112	4672646	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5089721	5089831	4.6e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5090030	5092928	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5093276	5094810	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5134823	5134933	4.6e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5135109	5138007	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5138355	5139889	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5226599	5226709	4.6e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5226810	5229708	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5230056	5231590	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5331092	5331202	4.6e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5331401	5334299	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_1084	barrnap:0.9	rRNA	5334647	5336181	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA

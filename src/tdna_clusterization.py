@@ -83,7 +83,7 @@ def write_fasta_and_clusterize(input_folder, output_folder, df,win1,win2):
                 salida.write(DR_seq+"\n")
         
         # Clusterize with MMSeqs
-        cmd = f"mmseqs easy-cluster {fasta_file} {fasta_file}_clusterRes_{str(win1)} tmp -c 0.95 -v 0"
+        cmd = f"mmseqs easy-cluster {fasta_file} {fasta_file}_clusterRes_{str(win1)} {output_folder}/tmp/ -c 0.95 -v 0"
         p = subprocess.run(cmd, shell=True)
         
         #os.remove(fasta_file)
@@ -487,4 +487,5 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext):
     #Remove cluster files
     for j in glob.glob(f'{output_folder}/*rep_seq.fasta', recursive=True):
         os.remove(j)
+    shutil.rmtree(f"{output_folder}/tmp/")
 

@@ -1,0 +1,26 @@
+##gff-version 3
+Kp_RYC492.dna	barrnap:0.9	rRNA	460335	461870	0	+	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	462072	464970	0	+	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	465056	465166	4.4e-11	+	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	465300	465409	2.7e-12	+	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	1196485	1198017	0	+	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	1198398	1201296	0	+	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	1201494	1201604	4.4e-11	+	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4091281	4091391	4.4e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4091491	4094389	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4094828	4096363	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4446375	4446485	4.4e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4446565	4449462	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4449809	4451344	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4798831	4798941	4.4e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4799139	4802037	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4802384	4803919	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4843920	4844030	4.5e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4844204	4847102	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4847449	4848983	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4935688	4935798	4.4e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4935898	4938796	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	4939143	4940678	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	5040159	5040269	4.4e-11	-	.	Name=5S_rRNA;product=5S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	5040467	5043365	0	-	.	Name=23S_rRNA;product=23S ribosomal RNA
+Kp_RYC492.dna	barrnap:0.9	rRNA	5043712	5045246	0	-	.	Name=16S_rRNA;product=16S ribosomal RNA

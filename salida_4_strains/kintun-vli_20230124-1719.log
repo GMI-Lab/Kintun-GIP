@@ -1,0 +1,26 @@
+INFO:root:This is Kintun-VLI for tDNAs and tmDNAs clusterization
+INFO:root:If you use it, please cite us
+INFO:root:---------------
+INFO:root:You're awesome!! :)
+INFO:root:---------------
+INFO:root:Let's create the output directory
+INFO:root:salida_4_strains/ was created
+INFO:root:Let's check your fasta files
+INFO:root:---------------
+INFO:root:Were detected 4 fasta files
+INFO:root:test/Kp_RYC492.fasta looks good!
+INFO:root:test/Kp_XH209.fasta looks good!
+INFO:root:test/Kp_30660.fasta looks good!
+INFO:root:test/Kp_1084.fasta looks good!
+INFO:root:---------------
+INFO:root:Now let's annotate your genomes with Aragorn and Barrnap
+INFO:root:---------------
+INFO:root:Checking aragorn: it was correctly detected
+INFO:root:Checking barrnap: it was correctly detected
+INFO:root:Processing Kp_RYC492.fasta file 1/4
+INFO:root:Processing Kp_XH209.fasta file 2/4
+INFO:root:Processing Kp_30660.fasta file 3/4
+INFO:root:Processing Kp_1084.fasta file 4/4
+INFO:root:---------------
+INFO:root:All your genomes are now annotated, yay! :D
+INFO:root:Finally it's time for tDNAs clusterization
