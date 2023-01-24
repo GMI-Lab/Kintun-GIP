@@ -129,7 +129,7 @@ def correct_nom(tdna_id, dict_nom, cor_dict_nom):
     except KeyError:
         return dict_nom[str(tdna_id)]
 
-def create_genbanks(input_folder,output_folder,df):
+def create_genbanks(input_folder,output_folder,df,prefix):
     for group_name, df_group in df.groupby(["strain"]):
         with open(f"{input_folder}/{group_name}.fasta", "r") as record_file:
             for record in SeqIO.parse(record_file,"fasta"):
@@ -156,9 +156,9 @@ def create_genbanks(input_folder,output_folder,df):
                         strand=feature_strand,
                         id=row["tdna_ind"],
                         qualifiers={
-                           "locus_tag" : row["tdna_nom_cor"],
+                           "locus_tag" : f"{prefix}_{row['tdna_nom_cor']}",
                            "product": row["ID"],
-                           "Kintun_VLI-tDNAclass" : row["tdna_nom_cor"]
+                           "Kintun_VLI-tDNAclass" : f"{prefix}_{row['tdna_nom_cor']}"
                            }
                         )
                     record.features.append(new_feature)
@@ -172,7 +172,7 @@ def create_genbanks(input_folder,output_folder,df):
                             dr_end_pos = ExactPosition(value[0])
                         dr_feature_location = FeatureLocation(dr_start_pos, dr_end_pos)
                         dr_feature_type = "misc_feature"
-                        id_string = f'DR_{row["tdna_nom_cor"]}_{index}'
+                        id_string = f'DR_{prefix}_{row["tdna_nom_cor"]}_{index}'
                         dr_feature = SeqFeature(
                         dr_feature_location,
                         type = dr_feature_type,
@@ -193,7 +193,7 @@ def create_genbanks(input_folder,output_folder,df):
                             ur_end_pos = ExactPosition(value[0])
                         ur_feature_location = FeatureLocation(ur_start_pos, ur_end_pos)
                         ur_feature_type = "misc_feature"
-                        id_string = f'UR_{row["tdna_nom_cor"]}_{index}'
+                        id_string = f'UR_{prefix}_{row["tdna_nom_cor"]}_{index}'
                         ur_feature = SeqFeature(
                         ur_feature_location,
                         type = ur_feature_type,
@@ -397,8 +397,8 @@ def correct_distances_ur(sense, tdna_start, tdna_end, distance):
         corrected_coordinates.append((new_start,new_end))
     return corrected_coordinates
 
-def create_tdnas_scheme(input_folder, list_reps, df):
-    with open("tdna_scheme.tsv","w") as output:
+def create_tdnas_scheme(input_folder,output_folder,list_reps, df, prefix):
+    with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","w") as output:
         output.write("#tdna_name\tprevalence\tstrain\tur_seq\ttdna_seq\tdr_seq\n")            
     # check by anticodon
     for file in list_reps:
@@ -432,8 +432,8 @@ def create_tdnas_scheme(input_folder, list_reps, df):
                         dr_seq = ''
                         for k in rep_locus.corr_dists_dr.item():
                             dr_seq += record.seq[k[1]:k[0]+1].reverse_complement()
-            with open("tdna_scheme.tsv","a") as output:
-                output.write(f"{tdna_name}\t{prevalence}\t{strain}\t{ur_seq}\t{tdna_seq}\t{dr_seq}\n")
+            with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","a") as output:
+                output.write(f"{prefix}_{tdna_name}\t{prevalence}\t{strain}\t{ur_seq}\t{tdna_seq}\t{dr_seq}\n")
 
 def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext):
     # Create list of files .aragorn
@@ -475,14 +475,14 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext):
     df["corr_dists_dr"] = df.apply(lambda row : correct_distances(row["sense"], row["start"], row["end"], row["uncorr_dists_dr"]), axis=1)
 
     #Export data to CSV file
-    df.to_csv('export_tdnas_test.csv', index=False)
+    #df.to_csv('export_tdnas_test.csv', index=False)
 
     #Create tDNAs scheme
     list_reps = glob.glob(f'{output_folder}/*_rep_seq.fasta', recursive=True)
-    create_tdnas_scheme(input_folder,list_reps, df)
+    create_tdnas_scheme(input_folder,output_folder,list_reps, df, nom_ext)
 
     #Create genbanks with annotations
-    create_genbanks(input_folder,output_folder,df)
+    create_genbanks(input_folder,output_folder,df,nom_ext)
     
     #Remove cluster files
     for j in glob.glob(f'{output_folder}/*rep_seq.fasta', recursive=True):
