@@ -63,7 +63,7 @@ def calculate_locus(infile):
             list_tmdnas.append((sep[3],sep[4],sep[6]))
     return list_tmdnas
                 
-def write_fasta_and_clusterize(input_folder, output_folder, df,win1,win2):
+def write_fasta_and_clusterize(input_folder, output_folder, df, win1 ,win2, threads):
     all_tdna_nom = {}
     for group_name, df_group in df.groupby(["nom_ant"]):
         # Create fasta
@@ -83,7 +83,7 @@ def write_fasta_and_clusterize(input_folder, output_folder, df,win1,win2):
                 salida.write(DR_seq+"\n")
         
         # Clusterize with MMSeqs
-        cmd = f"mmseqs easy-cluster {fasta_file} {fasta_file}_clusterRes_{str(win1)} {output_folder}/tmp/ -c 0.95 -v 0"
+        cmd = f"mmseqs easy-cluster {fasta_file} {fasta_file}_clusterRes_{str(win1)} {output_folder}/tmp/ -c 0.95 -v 0 --threads {threads}"
         p = subprocess.run(cmd, shell=True)
         
         #os.remove(fasta_file)
@@ -210,7 +210,7 @@ def create_genbanks(input_folder,output_folder,df,prefix):
                 with open(f"{output_folder}/{group_name}_VLIresults.gb", "w") as output_file:
                     SeqIO.write(record, output_file, "gb")
 
-def check_exclusion(df,input_folder,output_folder):
+def check_exclusion(df,input_folder,output_folder,threads):
     """
     A single chromosome cannot have
     two t(m)DNAS with the same name
@@ -239,7 +239,7 @@ def check_exclusion(df,input_folder,output_folder):
                 except FileNotFoundError:
                     pass
                 # repeat UR analysis
-                nom_dict = write_fasta_and_clusterize(input_folder,output_folder,sub_df,x,1)
+                nom_dict = write_fasta_and_clusterize(input_folder,output_folder,sub_df,x,1, threads)
                 x += 2000
             try:
                 filePath = f"{output_folder}/{tdna[:-1]}_all.fasta_clusterRes_{x-1000}_rep_seq.fasta"
@@ -252,7 +252,7 @@ def check_exclusion(df,input_folder,output_folder):
         corrected_distance = np.max([i[1] for i in new_distances if i[0] == tdna])
         corrected_tdna_nom_distance[tdna] = corrected_distance
         sub_df = df.loc[df['nom_ant'] == tdna[:-1]]
-        corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder,output_folder,sub_df,corrected_distance,1))
+        corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder,output_folder,sub_df,corrected_distance,1,threads))
     
     return corrected_tdna_nom,corrected_tdna_nom_distance
 
@@ -280,7 +280,7 @@ def extract_sequence_dr(fasta_file, start, end, sense):
             # return
             return dr_seq
 
-def conserved_downstream_blocks(list_files,input_folder,output_folder,df,win1):
+def conserved_downstream_blocks(list_files,input_folder,output_folder,df,win1,threads):
     all_tdna_dists = {}
     for group_name, df_group in df.groupby(["tdna_nom_cor"]):
         if len(df_group) > 1:
@@ -301,7 +301,7 @@ def conserved_downstream_blocks(list_files,input_folder,output_folder,df,win1):
                     records_ids.append(row["tdna_ind"])
                                     
             # SibeliaZ and maf2synteny exec
-            cmd_sibeliaz = f"sibeliaz -n -o {output_folder}/tmp_sibelia/ {fasta_file} ; maf2synteny -b 5000 -o {output_folder}/tmp_sibelia/ {output_folder}/tmp_sibelia/blocks_coords.gff"
+            cmd_sibeliaz = f"sibeliaz -n -t {threads} -o {output_folder}/tmp_sibelia/ {fasta_file} ; maf2synteny -b 5000 -o {output_folder}/tmp_sibelia/ {output_folder}/tmp_sibelia/blocks_coords.gff"
             p = subprocess.run(cmd_sibeliaz, shell=True)               
             with open(f"{output_folder}/tmp_sibelia/5000/blocks_coords.txt","r") as lcbs_file:
                 fields = "".join(lcbs_file.readlines()).split(f"{80*'-'}\n")
@@ -435,7 +435,7 @@ def create_tdnas_scheme(input_folder,output_folder,list_reps, df, prefix):
             with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","a") as output:
                 output.write(f"{prefix}_{tdna_name}\t{prevalence}\t{strain}\t{ur_seq}\t{tdna_seq}\t{dr_seq}\n")
 
-def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext):
+def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads):
     # Create list of files .aragorn
     print(input_folder)
     list_files = glob.glob(f'{output_folder}/*/*.aragorn', recursive=True)
@@ -458,7 +458,7 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext):
     df['tdna_ind'] = range(1, len(df) + 1)
 
     # defines nomenclature
-    nom_dict = write_fasta_and_clusterize(input_folder,output_folder,df,1001,1)
+    nom_dict = write_fasta_and_clusterize(input_folder,output_folder,df,1001,1,threads)
     df["tdna_nom"] = df.apply(lambda row : apply_new_nom(row["tdna_ind"],nom_dict), axis=1)
 
     # check exclusion nomenclature
@@ -470,7 +470,7 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext):
     df["corr_dists_ur"] = df.apply(lambda row : correct_distances_ur(row["sense"], row["start"], row["end"], row["uncorr_dists_ur"]), axis=1)
 
     #Calculate conserved downstream region
-    dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,output_folder,df,200000)
+    dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,output_folder,df,200000,threads)
     df["uncorr_dists_dr"] = df.apply(lambda row : apply_dists(row["tdna_ind"],dist_dr_cons), axis=1)
     df["corr_dists_dr"] = df.apply(lambda row : correct_distances(row["sense"], row["start"], row["end"], row["uncorr_dists_dr"]), axis=1)
 
