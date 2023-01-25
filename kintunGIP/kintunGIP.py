@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 12 14:59:58 2020
 
-@author: camilo
-"""
 import sys
 sys.path.append('/')
 
