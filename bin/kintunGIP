@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
+import sys
 import os
 import argparse
 import logging
 import time
-from kintunGIP import check_fasta, annotate_fasta, tdna_clusterization
+from kintunGIP import *
 
 class Kintun:
     def __init__(self):
