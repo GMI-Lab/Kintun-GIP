@@ -6,7 +6,7 @@ Created on Mon Oct 12 14:59:58 2020
 @author: camilo
 """
 import sys
-sys.path.append('./src/')
+sys.path.append('/')
 
 import os
 import argparse
