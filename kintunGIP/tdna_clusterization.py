@@ -158,7 +158,7 @@ def create_genbanks(input_folder,output_folder,df,prefix):
                         qualifiers={
                            "locus_tag" : f"{prefix}_{row['tdna_nom_cor']}",
                            "product": row["ID"],
-                           "Kintun_VLI-tDNAclass" : f"{prefix}_{row['tdna_nom_cor']}"
+                           "Kintun_GPI-tmDNAclass" : f"{prefix}_{row['tdna_nom_cor']}"
                            }
                         )
                     record.features.append(new_feature)
@@ -207,7 +207,7 @@ def create_genbanks(input_folder,output_folder,df,prefix):
                     record.annotations["molecule_type"] = "DNA"
                     record.annotations["form"] = "double stranded"
                     record.annotations["topology"] = "circular"
-                with open(f"{output_folder}/{group_name}_VLIresults.gb", "w") as output_file:
+                with open(f"{output_folder}/{group_name}_kintun-clust.gb", "w") as output_file:
                     SeqIO.write(record, output_file, "gb")
 
 def check_exclusion(df,input_folder,output_folder,threads):
