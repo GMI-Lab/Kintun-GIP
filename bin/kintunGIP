@@ -97,7 +97,8 @@ class Kintun:
         logging.info("---------------")
         logging.info("All your genomes are now annotated, yay! :D")
         logging.info("Finally it's time for tDNAs clusterization")
-        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir, args.file_extension, args.prefix)
+        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir, 
+                                                args.file_extension, args.prefix, args.threads)
         #logging.info("---------------")
         #logging.info("It seems clusterization is over, you can find tDNAS annotated in the final genbank files")
         #logging.info("Have a good day!")
