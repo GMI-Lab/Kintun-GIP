@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path.append('../kintunGIP/')
 
 import os
 import argparse
 import logging
 import time
-import check_fasta
-import annotate_fasta
-import tdna_clusterization
+from check_fasta import check_fasta
+from annotate_fasta import annotate_fasta
+from tdna_clusterization import tdna_clusterization
 
 class Kintun:
     def __init__(self):
