@@ -12,9 +12,9 @@
 
 ## Recommended installation 
 We have been successful installing the dependencies in a conda environment and running the code in that environment.
-'''
+```
 conda create -n gmi-kintun -c bioconda -c conda-forge aragorn barrnap biopython glob2 mmseqs2 sibeliaz
 conda activate gmi-kintun
-'''
+```
 
 ## Kintun-GIP clust
