@@ -1,10 +1,10 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='kintunGIP',
     version='0.9.0',
-    packages=find_packages(include=["kintunGIP", "kintunGIP.*"]),
-    scripts=["kintunGIP/kintunGIP.py"],
+    packages=["kintunGIP"],
+    scripts=["bin/kintunGIP"],
     install_requires=[
         'biopython>=1.80',
         'glob2>=0.7',
