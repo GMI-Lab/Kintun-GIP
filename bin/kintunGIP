@@ -6,9 +6,7 @@ import os
 import argparse
 import logging
 import time
-from check_fasta import check_fasta
-from annotate_fasta import annotate_fasta
-from tdna_clusterization import tdna_clusterization
+from kintunGIP import check_fasta, annotate_fasta, tdna_clusterization
 
 class Kintun:
     def __init__(self):
