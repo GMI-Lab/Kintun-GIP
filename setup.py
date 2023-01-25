@@ -12,7 +12,7 @@ setup(
         'mmseqs2>=14.7e284',
         'python>=3.10',
         'sibeliaz>=1.2.5'
-    ]
+    ],
     url='https://github.com/GMI-Lab/Kintun-GIP',
     license='GNU GENERAL PUBLIC LICENSE',
     author='Camilo Berrios-Pasten',
