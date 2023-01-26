@@ -63,14 +63,14 @@ def calculate_locus(infile):
             list_tmdnas.append((sep[3],sep[4],sep[6]))
     return list_tmdnas
                 
-def write_fasta_and_clusterize(input_folder, output_folder, df, win1 ,win2, threads):
+def write_fasta_and_clusterize(input_folder, file_ext, output_folder, df, win1 ,win2, threads):
     all_tdna_nom = {}
     for group_name, df_group in df.groupby(["nom_ant"]):
         # Create fasta
         fasta_file = output_folder + group_name + "_all.fasta"
         with open(fasta_file, "w") as salida:
             for row_index, row in df_group.iterrows():
-                in_file = input_folder + row["strain"] + ".fasta"
+                in_file = input_folder + row["strain"] + file_ext
                 if row['sense'] == "+":
                     with open(in_file,"r") as entrada:
                         for record in SeqIO.parse(entrada,"fasta"):
@@ -129,9 +129,9 @@ def correct_nom(tdna_id, dict_nom, cor_dict_nom):
     except KeyError:
         return dict_nom[str(tdna_id)]
 
-def create_genbanks(input_folder,output_folder,df,prefix):
+def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
     for group_name, df_group in df.groupby(["strain"]):
-        with open(f"{input_folder}/{group_name}.fasta", "r") as record_file:
+        with open(f"{input_folder}/{group_name}.{file_ext}", "r") as record_file:
             for record in SeqIO.parse(record_file,"fasta"):
                 for row_index, row in df_group.iterrows():
                     # positions
@@ -210,7 +210,7 @@ def create_genbanks(input_folder,output_folder,df,prefix):
                 with open(f"{output_folder}/{group_name}_kintun-clust.gb", "w") as output_file:
                     SeqIO.write(record, output_file, "gb")
 
-def check_exclusion(df,input_folder,output_folder,threads):
+def check_exclusion(df,input_folder,file_ext,output_folder,threads):
     """
     A single chromosome cannot have
     two t(m)DNAS with the same name
@@ -239,7 +239,7 @@ def check_exclusion(df,input_folder,output_folder,threads):
                 except FileNotFoundError:
                     pass
                 # repeat UR analysis
-                nom_dict = write_fasta_and_clusterize(input_folder,output_folder,sub_df,x,1, threads)
+                nom_dict = write_fasta_and_clusterize(input_folder,file_ext,output_folder,sub_df,x,1, threads)
                 x += 2000
             try:
                 filePath = f"{output_folder}/{tdna[:-1]}_all.fasta_clusterRes_{x-1000}_rep_seq.fasta"
@@ -252,7 +252,7 @@ def check_exclusion(df,input_folder,output_folder,threads):
         corrected_distance = np.max([i[1] for i in new_distances if i[0] == tdna])
         corrected_tdna_nom_distance[tdna] = corrected_distance
         sub_df = df.loc[df['nom_ant'] == tdna[:-1]]
-        corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder,output_folder,sub_df,corrected_distance,1,threads))
+        corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder,file_ext,output_folder,sub_df,corrected_distance,1,threads))
     
     return corrected_tdna_nom,corrected_tdna_nom_distance
 
@@ -280,7 +280,7 @@ def extract_sequence_dr(fasta_file, start, end, sense):
             # return
             return dr_seq
 
-def conserved_downstream_blocks(list_files,input_folder,output_folder,df,win1,threads):
+def conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,win1,threads):
     all_tdna_dists = {}
     for group_name, df_group in df.groupby(["tdna_nom_cor"]):
         if len(df_group) > 1:
@@ -290,7 +290,7 @@ def conserved_downstream_blocks(list_files,input_folder,output_folder,df,win1,th
             fasta_file = output_folder + "dr_" + group_name + "_all.fasta"
             with open(fasta_file, "w") as salida:
                 for row_index, row in df_group.iterrows():
-                    strain_fasta = input_folder + row["strain"] + ".fasta"
+                    strain_fasta = input_folder + row["strain"] + file_ext
                     if row['sense'] == "+":
                         DR_seq = extract_sequence_dr(strain_fasta, row["end"]+1, row["end"]+win1, "+")
                     else:
@@ -397,7 +397,7 @@ def correct_distances_ur(sense, tdna_start, tdna_end, distance):
         corrected_coordinates.append((new_start,new_end))
     return corrected_coordinates
 
-def create_tdnas_scheme(input_folder,output_folder,list_reps, df, prefix):
+def create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, prefix):
     with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","w") as output:
         output.write("#tdna_name\tprevalence\tstrain\tur_seq\ttdna_seq\tdr_seq\n")            
     # check by anticodon
@@ -414,7 +414,7 @@ def create_tdnas_scheme(input_folder,output_folder,list_reps, df, prefix):
             tdna_name = rep_locus.tdna_nom_cor.item()
             strain = rep_locus.strain.item()
             prevalence = len(df.loc[df.tdna_nom_cor == tdna_name])
-            with open(f"{input_folder}/{strain}.fasta","r") as strain_seq:
+            with open(f"{input_folder}/{strain}.{file_ext}","r") as strain_seq:
                 for record in SeqIO.parse(strain_seq,"fasta"):
                     if rep_locus.sense.item() == "+":
                         tdna_seq = record.seq[rep_locus.start.item():rep_locus.end.item()+1]
@@ -435,57 +435,46 @@ def create_tdnas_scheme(input_folder,output_folder,list_reps, df, prefix):
             with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","a") as output:
                 output.write(f"{prefix}_{tdna_name}\t{prevalence}\t{strain}\t{ur_seq}\t{tdna_seq}\t{dr_seq}\n")
 
-def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads):
+def tdna_clusterization(input_folder,file_ext,output_folder, file_ext, nom_ext, threads):
     # Create list of files .aragorn
-    print(input_folder)
     list_files = glob.glob(f'{output_folder}/*/*.aragorn', recursive=True)
     # Create empty dataframes with column numbers
     df = pd.DataFrame(columns=["strain","method","type","start","end","na1","sense","na2","ID"])
-
     # For each file add data to the df Dataframe
     for infile in list_files:
         df2 = pd.read_csv(infile, sep="\t", names=["strain","method","type","start","end","na1","sense","na2","ID"])
         df = pd.concat([df,df2])
-
     #Delete no data columns
     df.drop(["method","type","na1","na2"], axis=1, inplace=True)
-
     #Corrects indexes
     df.reset_index(inplace=True, drop=True)
-
     #Add some info
     df["nom_ant"] = df.apply(lambda row : apply_ant_dict(row["ID"]), axis=1)
     df['tdna_ind'] = range(1, len(df) + 1)
-
     # defines nomenclature
-    nom_dict = write_fasta_and_clusterize(input_folder,output_folder,df,1001,1,threads)
+    nom_dict = write_fasta_and_clusterize(input_folder,file_ext,output_folder,df,1001,1,threads)
     df["tdna_nom"] = df.apply(lambda row : apply_new_nom(row["tdna_ind"],nom_dict), axis=1)
-
     # check exclusion nomenclature
-    cor_nom_dict,cor_nom_dict_dist = check_exclusion(df,input_folder,output_folder,threads)
+    cor_nom_dict,cor_nom_dict_dist = check_exclusion(df,input_folder,file_ext,output_folder,threads)
     df["tdna_nom_cor"] = df.apply(lambda row : correct_nom(row["tdna_ind"],nom_dict,cor_nom_dict), axis=1)
-
     # UR sizes 
     df["uncorr_dists_ur"] = df.apply(lambda row : apply_dists_ur(row["nom_ant"],cor_nom_dict_dist), axis=1)
     df["corr_dists_ur"] = df.apply(lambda row : correct_distances_ur(row["sense"], row["start"], row["end"], row["uncorr_dists_ur"]), axis=1)
-
     #Calculate conserved downstream region
-    dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,output_folder,df,200000,threads)
+    dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,200000,threads)
     df["uncorr_dists_dr"] = df.apply(lambda row : apply_dists(row["tdna_ind"],dist_dr_cons), axis=1)
     df["corr_dists_dr"] = df.apply(lambda row : correct_distances(row["sense"], row["start"], row["end"], row["uncorr_dists_dr"]), axis=1)
-
     #Export data to CSV file
     #df.to_csv('export_tdnas_test.csv', index=False)
-
     #Create tDNAs scheme
     list_reps = glob.glob(f'{output_folder}/*_rep_seq.fasta', recursive=True)
-    create_tdnas_scheme(input_folder,output_folder,list_reps, df, nom_ext)
-
+    create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, nom_ext)
     #Create genbanks with annotations
-    create_genbanks(input_folder,output_folder,df,nom_ext)
-    
+    create_genbanks(input_folder,file_ext,output_folder,df,nom_ext)
     #Remove cluster files
     for j in glob.glob(f'{output_folder}/*rep_seq.fasta', recursive=True):
         os.remove(j)
+    #Remove tmp folder
     shutil.rmtree(f"{output_folder}/tmp/")
 
+   
