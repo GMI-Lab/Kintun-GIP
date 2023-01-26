@@ -36,6 +36,7 @@ dct_ant = dict(ACC='gly4', ATG='his2', ACA='cys2', ACG='arg1', ATC='asp2',
                GAA='phe1', TCA='sec1', GCA='cys1', GCC='gly2', GCG='arg6',
                GCT='ser4', ACT='ser5', CTA='Sup1', TTA='Sup2', ssrA='ssrA')
 
+
 # Functions
 def apply_ant_dict(ID_info):
     tmdna_id = ""
@@ -425,7 +426,9 @@ def create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, prefi
             with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","a") as output:
                 output.write(f"{prefix}_{tdna_name}\t{prevalence}\t{strain}\t{ur_seq}\t{tdna_seq}\t{dr_seq}\n")
 
-def tdna_clusterization(input_folder,file_ext,output_folder,nom_ext,threads):
+#        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir,
+#                                                args.file_extension, args.prefix, args.threads)
+def tdna_clusterization(input_folder,output_folder,nom_ext,file_ext,threads):
     # Create list of files .aragorn
     list_files = glob.glob(f'{output_folder}/*/*.aragorn', recursive=True)
     # Create empty dataframes with column numbers
