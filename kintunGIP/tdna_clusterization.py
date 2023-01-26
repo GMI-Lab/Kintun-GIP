@@ -234,7 +234,7 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
             while len(set(list(nom_dict.values()))) < len(sub_df):
                 # deletes old file
                 try:
-                    filePath = f"{output_folder}/{tdna[:-1]}_all.fasta_clusterRes_{x-1000}_rep_seq.fasta"
+                    filePath = f"{output_folder}/{tdna[:-1]}_all.fasta_clusterRes_{x-2000}_rep_seq.fasta"
                     os.remove(filePath)
                 except FileNotFoundError:
                     pass
@@ -242,7 +242,7 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
                 nom_dict = write_fasta_and_clusterize(input_folder,file_ext,output_folder,sub_df,x,1, threads)
                 x += 2000
             try:
-                filePath = f"{output_folder}/{tdna[:-1]}_all.fasta_clusterRes_{x-1000}_rep_seq.fasta"
+                filePath = f"{output_folder}/{tdna[:-1]}_all.fasta_clusterRes_{x-2000}_rep_seq.fasta"
                 os.remove(filePath)
             except FileNotFoundError:
                 pass
