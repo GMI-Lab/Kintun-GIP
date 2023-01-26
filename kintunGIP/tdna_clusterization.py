@@ -19,6 +19,7 @@ from Bio.SeqFeature import ExactPosition
 from Bio.SeqFeature import FeatureLocation
 from collections import Counter
 import numpy as np
+import logging
 
 # Dictionary with anticodon codes
 dct_ant = dict(ACC='gly4', ATG='his2', ACA='cys2', ACG='arg1', ATC='asp2',
@@ -34,15 +35,6 @@ dct_ant = dict(ACC='gly4', ATG='his2', ACA='cys2', ACG='arg1', ATC='asp2',
                TGG='pro3', GAG='leu1', TCG='arg5', GAC='val2', TCC='gly3',
                GAA='phe1', TCA='sec1', GCA='cys1', GCC='gly2', GCG='arg6',
                GCT='ser4', ACT='ser5', CTA='Sup1', TTA='Sup2', ssrA='ssrA')
-# Amino Acids one letter code
-aa_cod = {'tRNA-Cys': 'C', 'tRNA-Asp': 'D', 'tRNA-Ser': 'S',
-          'tRNA-Gln': 'Q', 'tRNA-Lys': 'K', 'tRNA-Ile': 'I',
-          'tRNA-Pro': 'P', 'tRNA-Thr': 'T', 'tRNA-Phe': 'F',
-          'tRNA-Asn': 'N', 'tRNA-Gly': 'G', 'tRNA-His': 'H',
-          'tRNA-Leu': 'L', 'tRNA-Arg': 'R', 'tRNA-Trp': 'W',
-          'tRNA-Ala': 'A', 'tRNA-Val': 'V', 'tRNA-Glu': 'E',
-          'tRNA-Tyr': 'Y', 'tRNA-Met': 'M', 'tRNA-Sec': 'U',
-          'tRNA-Pyl': 'O'}
 
 # Functions
 def apply_ant_dict(ID_info):
@@ -67,7 +59,7 @@ def write_fasta_and_clusterize(input_folder, file_ext, output_folder, df, win1 ,
     all_tdna_nom = {}
     for group_name, df_group in df.groupby(["nom_ant"]):
         # Create fasta
-        fasta_file = output_folder + group_name + "_all.fasta"
+        fasta_file = f"{output_folder}/{group_name}_all.fasta"
         with open(fasta_file, "w") as salida:
             for row_index, row in df_group.iterrows():
                 in_file = input_folder + row["strain"] + file_ext
@@ -79,16 +71,14 @@ def write_fasta_and_clusterize(input_folder, file_ext, output_folder, df, win1 ,
                     with open(in_file,"r") as entrada:
                         for record in SeqIO.parse(entrada,"fasta"):
                             DR_seq = str(record.seq[row["end"]+win2:row["end"]+win1].reverse_complement()).upper()
-                salida.write(">"+str(row["tdna_ind"])+"_-_"+row["nom_ant"]+"_-_"+row["strain"]+"\n")
-                salida.write(DR_seq+"\n")
-        
+                salida.write(f">{str(row['tdna_ind'])}+_-_{row['nom_ant']}_-_{row['strain']}\n")
+                salida.write(f"{DR_seq}\n")
         # Clusterize with MMSeqs
-        cmd = f"mmseqs easy-cluster {fasta_file} {fasta_file}_clusterRes_{str(win1)} {output_folder}/tmp/ -c 0.95 -v 0 --threads {threads}"
+        cmd = f"mmseqs easy-cluster {fasta_file} {fasta_file}_clusterRes_{str(win1)} {output_folder}/tmp/ " \
+              f"-c 0.95 -v 0 --threads {threads}"
         p = subprocess.run(cmd, shell=True)
-        
         #os.remove(fasta_file)
         os.remove(f"{fasta_file}_clusterRes_{str(win1)}_all_seqs.fasta")
-        
         #Abre el archivo de las asignaciones
         with open(f"{fasta_file}_clusterRes_{str(win1)}_cluster.tsv", "r") as tsv_file:
             #Lee el archivo de asignaciones
@@ -148,8 +138,7 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
                         feature_strand = 1
                     else:
                         feature_strand = -1
-                    
-                    # create new feature
+                    # create new tmrna feature
                     new_feature = SeqFeature(
                         feature_location,
                         type=feature_type,
@@ -162,7 +151,7 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
                            }
                         )
                     record.features.append(new_feature)
-                    
+                    # create new dr feature
                     for index,value in enumerate(row["corr_dists_dr"]):
                         if value[0] < value[1]:
                             dr_start_pos = ExactPosition(value[0])
@@ -183,7 +172,7 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
                            }
                         )
                         record.features.append(dr_feature)
-                        
+                    # create new ur feature
                     for index,value in enumerate(row["corr_dists_ur"]):
                         if value[0] < value[1]:
                             ur_start_pos = ExactPosition(value[0])
@@ -207,6 +196,7 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
                     record.annotations["molecule_type"] = "DNA"
                     record.annotations["form"] = "double stranded"
                     record.annotations["topology"] = "circular"
+                # export genbank
                 with open(f"{output_folder}/{group_name}_kintun-clust.gb", "w") as output_file:
                     SeqIO.write(record, output_file, "gb")
 
@@ -231,7 +221,8 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
             sub_df = df_group.loc[df_group['nom_ant'] == tdna[:-1]]
             nom_dict = {}
             x = 2001
-            while len(set(list(nom_dict.values()))) < len(sub_df):
+            logging.info(f"Checking {tdna[:-1]} in strain {group_name} (window {str(x)} pb) ")
+            while len(set(list(nom_dict.values()))) < len(sub_df) and x < 50000:
                 # deletes old file
                 try:
                     filePath = f"{output_folder}/{tdna[:-1]}_all.fasta_clusterRes_{x-2000}_rep_seq.fasta"
@@ -253,7 +244,7 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
         corrected_tdna_nom_distance[tdna] = corrected_distance
         sub_df = df.loc[df['nom_ant'] == tdna[:-1]]
         corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder,file_ext,output_folder,sub_df,corrected_distance,1,threads))
-    
+        len(set(list(nom_dict.values()))) < len(sub_df)
     return corrected_tdna_nom,corrected_tdna_nom_distance
 
 
