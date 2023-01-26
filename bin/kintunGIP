@@ -77,7 +77,7 @@ class Kintun:
         list_files = [os.path.join(args.fasta_dir, file)
                       for file in os.listdir(args.fasta_dir)
                       if file.endswith(args.file_extension)]
-        if len(list_files) < 4:
+        if len(list_files) < 2:
             logging.info("Not enough fasta files to analyze detected! Exit!")
             sys.exit("Not enough fasta files to analyze detected! Exit!")
         else:
