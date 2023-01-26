@@ -462,7 +462,7 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads)
     df["tdna_nom"] = df.apply(lambda row : apply_new_nom(row["tdna_ind"],nom_dict), axis=1)
 
     # check exclusion nomenclature
-    cor_nom_dict,cor_nom_dict_dist = check_exclusion(df,input_folder,output_folder)
+    cor_nom_dict,cor_nom_dict_dist = check_exclusion(df,input_folder,output_folder,threads)
     df["tdna_nom_cor"] = df.apply(lambda row : correct_nom(row["tdna_ind"],nom_dict,cor_nom_dict), axis=1)
 
     # UR sizes 
