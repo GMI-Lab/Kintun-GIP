@@ -244,7 +244,6 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
         corrected_tdna_nom_distance[tdna] = corrected_distance
         sub_df = df.loc[df['nom_ant'] == tdna[:-1]]
         corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder,file_ext,output_folder,sub_df,corrected_distance,1,threads))
-        len(set(list(nom_dict.values()))) < len(sub_df)
     return corrected_tdna_nom,corrected_tdna_nom_distance
 
 
@@ -426,7 +425,7 @@ def create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, prefi
             with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","a") as output:
                 output.write(f"{prefix}_{tdna_name}\t{prevalence}\t{strain}\t{ur_seq}\t{tdna_seq}\t{dr_seq}\n")
 
-def tdna_clusterization(input_folder,file_ext,output_folder, file_ext, nom_ext, threads):
+def tdna_clusterization(input_folder,file_ext,output_folder,nom_ext,threads):
     # Create list of files .aragorn
     list_files = glob.glob(f'{output_folder}/*/*.aragorn', recursive=True)
     # Create empty dataframes with column numbers
