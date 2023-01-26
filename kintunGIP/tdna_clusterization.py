@@ -63,7 +63,7 @@ def write_fasta_and_clusterize(input_folder, file_ext, output_folder, df, win1 ,
         fasta_file = f"{output_folder}/{group_name}_all.fasta"
         with open(fasta_file, "w") as salida:
             for row_index, row in df_group.iterrows():
-                in_file = input_folder + row["strain"] + file_ext
+                in_file = f"{input_folder}/{row['strain']}.{file_ext}"
                 if row['sense'] == "+":
                     with open(in_file,"r") as entrada:
                         for record in SeqIO.parse(entrada,"fasta"):
@@ -428,7 +428,7 @@ def create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, prefi
 
 #        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir,
 #                                                args.file_extension, args.prefix, args.threads)
-def tdna_clusterization(input_folder,output_folder,nom_ext,file_ext,threads):
+def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     # Create list of files .aragorn
     list_files = glob.glob(f'{output_folder}/*/*.aragorn', recursive=True)
     # Create empty dataframes with column numbers
