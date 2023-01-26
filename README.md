@@ -12,7 +12,7 @@
 ## Recommended installation 
 We have been successful installing the dependencies in a conda environment and running the code in that environment.
 ```
-conda create -n gmi-kintun -c bioconda -c conda-forge python>=3.10 aragorn barrnap biopython glob2 mmseqs2 sibeliaz pandas
+conda create -n gmi-kintun -c bioconda -c conda-forge "python>=3.10" aragorn barrnap biopython glob2 mmseqs2 sibeliaz pandas
 conda activate gmi-kintun
 git clone https://github.com/GMI-Lab/Kintun-GIP.git
 cd Kintun-GIP/
