@@ -72,7 +72,7 @@ def write_fasta_and_clusterize(input_folder, file_ext, output_folder, df, win1 ,
                     with open(in_file,"r") as entrada:
                         for record in SeqIO.parse(entrada,"fasta"):
                             DR_seq = str(record.seq[row["end"]+win2:row["end"]+win1].reverse_complement()).upper()
-                salida.write(f">{str(row['tdna_ind'])}+_-_{row['nom_ant']}_-_{row['strain']}\n")
+                salida.write(f">{str(row['tdna_ind'])}_-_{row['nom_ant']}_-_{row['strain']}\n")
                 salida.write(f"{DR_seq}\n")
         # Clusterize with MMSeqs
         cmd = f"mmseqs easy-cluster {fasta_file} {fasta_file}_clusterRes_{str(win1)} {output_folder}/tmp/ " \
@@ -447,7 +447,7 @@ def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     # defines nomenclature
     nom_dict = write_fasta_and_clusterize(input_folder,file_ext,output_folder,df,1001,1,threads)
     df.to_csv(f'{output_folder}/export_tdnas_test.csv', index=False)
-    df_tmp = pd.DataFrame.from_dict(nom_dict) 
+    df_tmp = pd.DataFrame.from_dict([nom_dict]) 
     df_tmp.to_csv (f'{output_folder}/test_nomdict.csv', index=False, header=True)
     df["tdna_nom"] = df.apply(lambda row : apply_new_nom(row["tdna_ind"],nom_dict), axis=1)
     # check exclusion nomenclature
