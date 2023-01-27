@@ -446,6 +446,9 @@ def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     df['tdna_ind'] = range(1, len(df) + 1)
     # defines nomenclature
     nom_dict = write_fasta_and_clusterize(input_folder,file_ext,output_folder,df,1001,1,threads)
+    df.to_csv(f'{output_folder}/export_tdnas_test.csv', index=False)
+    df_tmp = pd.DataFrame.from_dict(nom_dict) 
+    df_tmp.to_csv (f'{output_folder}/test_nomdict.csv', index=False, header=True)
     df["tdna_nom"] = df.apply(lambda row : apply_new_nom(row["tdna_ind"],nom_dict), axis=1)
     # check exclusion nomenclature
     cor_nom_dict,cor_nom_dict_dist = check_exclusion(df,input_folder,file_ext,output_folder,threads)
