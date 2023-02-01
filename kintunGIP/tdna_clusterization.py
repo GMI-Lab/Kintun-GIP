@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Oct 12 18:34:12 2020
-for Synerclust
+
 @author: camilo
 """
 
@@ -22,20 +22,20 @@ import numpy as np
 import logging
 
 # Dictionary with anticodon codes
-dct_ant = dict(ACC='gly4', ATG='his2', ACA='cys2', ACG='arg1', ATC='asp2',
-               ATA='tyr2', AGG='pro4', CCT='arg2', AGC='ala3', AGA='ser6',
-               ATT='asn2', CTG='gln2', CTC='glu2', CCG='arg4', AGT='thr4',
-               CCA='trp1', CCC='gly1', TAT='ile2', GGT='thr1', CGA='ser3',
-               CGC='ala4', CGG='pro1', GGG='pro2', TAG='leu3', GGA='ser2',
-               TAA='leu2', GGC='ala1', TAC='val1', CGT='thr2', GTA='tyr1',
-               GTC='asp1', GTG='his1', TTC='glu1', GTT='asn1', TTG='gln1',
-               AAG='leu6', AAA='phe2', AAC='val4', TTT='lys1', CAT='met1',
-               AAT='ile3', CAC='val3', CAA='leu5', CAG='leu4', TGT='thr3',
-               TCT='arg3', GAT='ile1', CTT='lys2', TGC='ala2', TGA='ser1',
-               TGG='pro3', GAG='leu1', TCG='arg5', GAC='val2', TCC='gly3',
-               GAA='phe1', TCA='sec1', GCA='cys1', GCC='gly2', GCG='arg6',
-               GCT='ser4', ACT='ser5', CTA='Sup1', TTA='Sup2', ssrA='ssrA')
-
+dct_ant = dict(GLYACC='gly4', HISATG='his2', CYSACA='cys2', ARGACG='arg1', ASPATC='asp2',
+               TYRATA='tyr2', PROAGG='pro4', ARGCCT='arg2', ALAAGC='ala3', SERAGA='ser6',
+               ASNATT='asn2', GLNCTG='gln2', GLUCTC='glu2', ARGCCG='arg4', THRAGT='thr4',
+               TRPCCA='trp1', GLYCCC='gly1', ILETAT='ile2', THRGGT='thr1', SERCGA='ser3',
+               ALACGC='ala4', PROCGG='pro1', PROGGG='pro2', LEUTAG='leu3', SERGGA='ser2',
+               LEUTAA='leu2', ALAGGC='ala1', VALTAC='val1', THRCGT='thr2', TYRGTA='tyr1',
+               ASPGTC='asp1', HISGTG='his1', GLUTTC='glu1', ASNGTT='asn1', GLNTTG='gln1',
+               LEUAAG='leu6', PHEAAA='phe2', VALAAC='val4', LYSTTT='lys1', METCAT='met1',
+               ARGTCT='arg3', ILEGAT='ile1', LYSCTT='lys2', ALATGC='ala2', SERTGA='ser1',
+               PROTGG='pro3', LEUGAG='leu1', ARGTCG='arg5', VALGAC='val2', GLYTCC='gly3',
+               PHEGAA='phe1', SECTCA='sec1', CYSGCA='cys1', GLYGCC='gly2', ARGGCG='arg6',
+               ILEAAT='ile3', VALCAC='val3', LEUCAA='leu5', LEUCAG='leu4', THRTGT='thr3',
+               SERGCT='ser4', SERACT='ser5', SUPCTA='Sup1', SUPTTA='Sup2', 
+               ILE2CAT='ile3', FMETCAT='fmet1', ssrA='ssrA')
 
 # Functions
 def apply_ant_dict(ID_info):
@@ -43,7 +43,7 @@ def apply_ant_dict(ID_info):
     if "Name=tmRNA" in ID_info:
         tmdna_id = "ssrA"
     else:
-        anticodon = ID_info.split("(")[1].split(")")[0]
+        anticodon = ID_info.split("Name=")[1].replace("-","")
         tmdna_id = dct_ant[anticodon.upper()]
     return tmdna_id
 
@@ -201,52 +201,88 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
                 with open(f"{output_folder}/{group_name}_kintun-clust.gb", "w") as output_file:
                     SeqIO.write(record, output_file, "gb")
 
+def detect_repeated_names(df,tdna,x):
+    check_list = []
+    for group_name, df_group in df.groupby(["strain"]):
+        if x == 1001:
+            if len(list(df_group[f"tdna_nom"])) != len(set(list(df_group[f"tdna_nom"]))):
+                check_list.append(group_name)
+            else:
+                continue
+        else:
+# tdna_nom_ile1_2001
+            if len(list(df_group[f"tdna_nom_{tdna}_{str(x)}"])) != len(set(list(df_group[f"tdna_nom_{tdna}_{str(x)}"]))):
+                check_list.append(group_name)
+    return check_list
+
 def check_exclusion(df,input_folder,file_ext,output_folder,threads):
     """
     A single chromosome cannot have
     two t(m)DNAS with the same name
     """
-    repeated_tdnas = []
-    corrected_tdna_nom = {}
-    new_distances = []
+    repeated_tdnas_prev = []
+    new_distances = {}
     corrected_tdna_nom_distance = {}
+    corrected_tdna_nom = {}
 
     for group_name, df_group in df.groupby(["strain"]):
         if len(list(df_group["tdna_nom"])) != len(set(list(df_group["tdna_nom"]))):
             tdna_list = list(df_group["tdna_nom"])
             d = Counter(tdna_list)
-            repeated_tdnas = repeated_tdnas + [item for item in d if d[item]>1]
+            repeated_tdnas_prev = repeated_tdnas_prev + [item for item in d if d[item]>1]
+    repeated_tdnas = []
+    for i in repeated_tdnas_prev:
+        if i[:-1] not in repeated_tdnas:
+            repeated_tdnas.append(i[:-1])
+        else:
+            continue
+    logging.info(f"Detected problems with the following tmDNAs {' '.join(repeated_tdnas)}")
+    
+    for tdna in repeated_tdnas:
+        df_tdna = pd.DataFrame()
+        for group_name, df_group in df.groupby(["nom_ant"]):
+            if group_name == tdna:
+                df_tdna = pd.concat([df_tdna,df_group])
+        df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_prev.csv', index=False)
+        # First try
+        nom_dict_new = write_fasta_and_clusterize(input_folder, file_ext, output_folder, df_tdna, 251, 1, threads)
+        logging.info(f"Creating tdna_nom_{tdna}_{251} column")
+        df_tdna[f"tdna_nom_{tdna}_{251}"] = df_tdna.apply(lambda row: apply_new_nom(row["tdna_ind"], nom_dict_new), axis=1)
+        df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_{251}.csv', index=False)
+        # Loop
+        window_values = [251,500,2001,4001,6001,8001,10001,20001,50001,100001]
+        for index,value in enumerate(window_values):
+            if index == 0:
+                problem_detected = detect_repeated_names(df_tdna,tdna,value)
+                logging.info(f"index = {index}, found problem with {' '.join(problem_detected)}")
+            else:
+                problem_detected = detect_repeated_names(df_tdna,tdna,window_values[index-1])
+                logging.info(f"index = {index}, found problem with {' '.join(problem_detected)}")
+            if len(problem_detected) > 1:
+                logging.info(f"Checking {tdna} with {str(value)} pb windows")
+                nom_dict_new = write_fasta_and_clusterize(input_folder, file_ext, output_folder, df_tdna, value, 1, threads)
+                logging.info(f"Creating tdna_nom_{tdna}_{str(value)} column")
+                df_tdna[f"tdna_nom_{tdna}_{str(value)}"] = df_tdna.apply(lambda row: apply_new_nom(row["tdna_ind"], nom_dict_new), axis=1)
+                df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_{str(value)}.csv', index=False)
+                if len(detect_repeated_names(df_tdna,tdna,value)) > 1:
+                    continue
+                else:
+                    new_distances[tdna] = value
+                    break
+            else:
+                new_distances[tdna] = value
+                break
+        try:
+            new_distances[tdna]
+        except KeyError:
+            new_distances[tdna] = 1001       
 
-    for tdna in list(dict.fromkeys(repeated_tdnas)):
-        for group_name, df_group in df.groupby(["strain"]):
-            sub_df = df_group.loc[df_group['nom_ant'] == tdna[:-1]]
-            nom_dict = {}
-            x = 2001
-            logging.info(f"Checking {tdna[:-1]} in strain {group_name} (window {str(x)} pb) ")
-            while len(set(list(nom_dict.values()))) < len(sub_df) and x < 50000:
-                # deletes old file
-                try:
-                    filePath = f"{output_folder}/{tdna[:-1]}_all.fasta_clusterRes_{x-2000}_rep_seq.fasta"
-                    os.remove(filePath)
-                except FileNotFoundError:
-                    pass
-                # repeat UR analysis
-                nom_dict = write_fasta_and_clusterize(input_folder,file_ext,output_folder,sub_df,x,1, threads)
-                x += 2000
-            try:
-                filePath = f"{output_folder}/{tdna[:-1]}_all.fasta_clusterRes_{x-2000}_rep_seq.fasta"
-                os.remove(filePath)
-            except FileNotFoundError:
-                pass
-            new_distances.append((tdna,x))
-
-    for tdna in list(dict.fromkeys(repeated_tdnas)):
-        corrected_distance = np.max([i[1] for i in new_distances if i[0] == tdna])
+    for tdna in repeated_tdnas:
+        corrected_distance = new_distances[tdna]
         corrected_tdna_nom_distance[tdna] = corrected_distance
-        sub_df = df.loc[df['nom_ant'] == tdna[:-1]]
-        corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder,file_ext,output_folder,sub_df,corrected_distance,1,threads))
-    return corrected_tdna_nom,corrected_tdna_nom_distance
-
+        sub_df = df.loc[df['nom_ant'] == tdna]
+        corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder, file_ext, output_folder, sub_df, corrected_distance, 1, threads))
+    return corrected_tdna_nom, corrected_tdna_nom_distance
 
 def extract_sequence_dr(fasta_file, start, end, sense):
     with open(fasta_file, "r") as entrada:
@@ -281,7 +317,7 @@ def conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,d
             fasta_file = output_folder + "dr_" + group_name + "_all.fasta"
             with open(fasta_file, "w") as salida:
                 for row_index, row in df_group.iterrows():
-                    strain_fasta = input_folder + row["strain"] + file_ext
+                    strain_fasta = f"{input_folder}/{row['strain']}.{file_ext}"
                     if row['sense'] == "+":
                         DR_seq = extract_sequence_dr(strain_fasta, row["end"]+1, row["end"]+win1, "+")
                     else:
@@ -289,8 +325,7 @@ def conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,d
                     #salida
                     salida.write(">"+str(row["tdna_ind"])+"_-_"+row["tdna_nom_cor"]+"_-_"+row["strain"]+"\n")
                     salida.write(str(DR_seq)+"\n")
-                    records_ids.append(row["tdna_ind"])
-                                    
+                    records_ids.append(row["tdna_ind"])                                    
             # SibeliaZ and maf2synteny exec
             cmd_sibeliaz = f"sibeliaz -n -t {threads} -o {output_folder}/tmp_sibelia/ {fasta_file} ; maf2synteny -b 5000 -o {output_folder}/tmp_sibelia/ {output_folder}/tmp_sibelia/blocks_coords.gff"
             p = subprocess.run(cmd_sibeliaz, shell=True)               
@@ -322,7 +357,6 @@ def conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,d
             for row_index, row in df_group.iterrows():
                 all_tdna_dists[row["tdna_ind"]] = [(1,2001)]
             #eliminar la carpeta
-            
     return all_tdna_dists
 
 def apply_dists(tdna_id, dict_dist):
@@ -426,11 +460,9 @@ def create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, prefi
             with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","a") as output:
                 output.write(f"{prefix}_{tdna_name}\t{prevalence}\t{strain}\t{ur_seq}\t{tdna_seq}\t{dr_seq}\n")
 
-#        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir,
-#                                                args.file_extension, args.prefix, args.threads)
 def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     # Create list of files .aragorn
-    list_files = glob.glob(f'{output_folder}/*/*.aragorn', recursive=True)
+    list_files = glob.glob(f'{output_folder}/*/*.trnascanse', recursive=True)
     # Create empty dataframes with column numbers
     df = pd.DataFrame(columns=["strain","method","type","start","end","na1","sense","na2","ID"])
     # For each file add data to the df Dataframe
@@ -446,9 +478,6 @@ def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     df['tdna_ind'] = range(1, len(df) + 1)
     # defines nomenclature
     nom_dict = write_fasta_and_clusterize(input_folder,file_ext,output_folder,df,1001,1,threads)
-    df.to_csv(f'{output_folder}/export_tdnas_test.csv', index=False)
-    df_tmp = pd.DataFrame.from_dict([nom_dict]) 
-    df_tmp.to_csv (f'{output_folder}/test_nomdict.csv', index=False, header=True)
     df["tdna_nom"] = df.apply(lambda row : apply_new_nom(row["tdna_ind"],nom_dict), axis=1)
     # check exclusion nomenclature
     cor_nom_dict,cor_nom_dict_dist = check_exclusion(df,input_folder,file_ext,output_folder,threads)
@@ -460,8 +489,6 @@ def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,200000,threads)
     df["uncorr_dists_dr"] = df.apply(lambda row : apply_dists(row["tdna_ind"],dist_dr_cons), axis=1)
     df["corr_dists_dr"] = df.apply(lambda row : correct_distances(row["sense"], row["start"], row["end"], row["uncorr_dists_dr"]), axis=1)
-    #Export data to CSV file
-    #df.to_csv('export_tdnas_test.csv', index=False)
     #Create tDNAs scheme
     list_reps = glob.glob(f'{output_folder}/*_rep_seq.fasta', recursive=True)
     create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, nom_ext)
