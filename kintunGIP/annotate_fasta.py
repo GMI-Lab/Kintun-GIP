@@ -25,7 +25,7 @@ def is_tool(name):
 
 def annotate_genome(list_fasta, dir_out, file_ext, threads):
     # First check if Prodigal, aragorn and barrnap is available
-    for software in ['tRNAscan-SE', 'barrnap']:
+    for software in ['tRNAscan-SE', 'aragorn', 'barrnap']:
         if is_tool(software):
             logging.info("""Checking %s: it was correctly detected"""
                          % software)
@@ -70,7 +70,7 @@ def annotate_genome(list_fasta, dir_out, file_ext, threads):
                         salida.write(line1)
         os.remove("%s/%s.prev" %(outdir, prefix))
         #Run ARAGORN
-        cmd3 = "aragorn -fo -m -gcbact -c -fasta %s > %s/%s.prev" % (file, outdir, prefix)
+        cmd3 = "aragorn -fo -m -gcbact -c -fasta %s > %s/%s.prev" % (in_file, outdir, prefix)
         os.popen(cmd3).read()
         # Process stdout from Aragorn
         counter = 1
