@@ -18,7 +18,6 @@ class Kintun:
 
     The available commands are:
       clust     Clusterize and name all t(m)DNAs in a bacterial genome collection.
-       (Coming soon)
     ''')
 
         parser.add_argument('command', help='Subcommand to run')
