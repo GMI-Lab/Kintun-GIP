@@ -63,8 +63,7 @@ class Kintun:
 
         logging.basicConfig(filename=os.path.join(args.results_dir, log_file),
                             level=20)
-        logging.info('This is Kintun-VLI for tDNAs and tmDNAs clusterization')
-        logging.info('If you use it, please cite us')
+        logging.info('This is Kintun-GPI clust for tDNAs and tmDNAs clusterization')
         logging.info("---------------")
         logging.info("You're awesome!! :)")
         logging.info("---------------")
