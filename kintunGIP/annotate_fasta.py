@@ -69,6 +69,30 @@ def annotate_genome(list_fasta, dir_out, file_ext, threads):
                     with open(out_file, 'a') as salida:
                         salida.write(line1)
         os.remove("%s/%s.prev" %(outdir, prefix))
+        #Run ARAGORN
+        cmd3 = "aragorn -fo -m -gcbact -c -fasta %s > %s/%s.prev" % (file, outdir, prefix)
+        os.popen(cmd3).read()
+        # Process stdout from Aragorn
+        counter = 1
+        with open("%s/%s.prev" % (outdir, prefix), "r") as trnas_in:
+            for line in trnas_in:
+                if line[0] == ">":
+                    sep = line.strip().split(" ")
+                    tdna_id = sep[0].replace(">", "")
+                    tdna_start = sep[1].split("[")[1].split(",")[0]
+                    tdna_end = sep[1].split(",")[1].split("]")[0]
+                    if sep[1][0] == "c":
+                        tdna_sense = "-"
+                    else:
+                        tdna_sense = "+"
+                    line1 = "%s\tARAGORN\tt(m)DNA\t%s\t%s\t.\t%s\t.\tID=%s;Name=%s\n" % (
+                        prefix, tdna_start, tdna_end, tdna_sense, str(counter).zfill(4), tdna_id)
+                    counter += 1
+                    with open(out_file, 'a') as salida:
+                        salida.write(line1)
+                else:
+                    continue
+        os.remove("%s/%s.prev" % (outdir, prefix))
         # Run barrnap
         cmd3 = "barrnap --kingdom bact --threads %s --quiet %s > %s/%s.barrnap" %(threads, in_file, outdir, prefix)
         os.popen(cmd3).read()

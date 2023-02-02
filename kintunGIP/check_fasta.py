@@ -11,4 +11,11 @@ from Bio import SeqIO
 def is_fasta(filename):
     with open(filename, "r") as handle:
         fasta = SeqIO.parse(handle, "fasta")
-        return any(fasta)  # False when `fasta` is empty
+        if not any(fasta):
+            return False
+        else:
+            if len([record.id for record in fasta]) > 1:
+                return False
+            else:
+                return True
+    # False when `fasta` is empty or has more than one record
