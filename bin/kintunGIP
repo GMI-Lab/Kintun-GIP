@@ -51,7 +51,7 @@ class Kintun:
                             default='',
                             help="Name of log file (Optional)")
         parser.add_argument("-v", action="version",
-                            version='Kintun-GIP t(m)DNAs clusterization module v1.0')
+                            version='Kintun-GIP t(m)DNAs clusterization module v0.9.0')
         args = parser.parse_args(sys.argv[2:])
         if os.path.exists(args.results_dir):
             sys.exit("Output directory already exists!")
