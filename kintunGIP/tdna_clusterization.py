@@ -250,12 +250,12 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
         for group_name, df_group in df.groupby(["nom_ant"]):
             if group_name == tdna:
                 df_tdna = pd.concat([df_tdna,df_group])
-        df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_prev.csv', index=False)
+        #df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_prev.csv', index=False)
         # First try
         nom_dict_new = write_fasta_and_clusterize(input_folder, file_ext, output_folder, df_tdna, 251, 1, threads)
         logging.info(f"Creating tdna_nom_{tdna}_{251} column")
         df_tdna[f"tdna_nom_{tdna}_{251}"] = df_tdna.apply(lambda row: apply_new_nom(row["tdna_ind"], nom_dict_new), axis=1)
-        df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_{251}.csv', index=False)
+        #df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_{251}.csv', index=False)
         # Loop
         window_values = [251,500,2001,4001,6001,8001,10001,20001,50001,100001]
         for index,value in enumerate(window_values):
@@ -476,7 +476,7 @@ def create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, prefi
 
 def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     # Create list of files .aragorn
-    list_files = glob.glob(f'{output_folder}/*/*.trnascanse', recursive=True)
+    list_files = glob.glob(f'{output_folder}/*/*.tmdnas', recursive=True)
     # Create empty dataframes with column numbers
     df = pd.DataFrame(columns=["strain","method","type","start","end","na1","sense","na2","ID"])
     # For each file add data to the df Dataframe
@@ -497,10 +497,10 @@ def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     cor_nom_dict,cor_nom_dict_dist = check_exclusion(df,input_folder,file_ext,output_folder,threads)
     df["tdna_nom_cor"] = df.apply(lambda row : correct_nom(row["tdna_ind"],nom_dict,cor_nom_dict), axis=1)
     # UR sizes 
-    df["uncorr_dists_ur"] = df.apply(lambda row : apply_dists_ur(row["nom_ant"],cor_nom_dict_dist), axis=1)
+    df["uncorr_dists_ur"] = df.apply(lambda row : apply_dists_ur(row["nom_ant_cor"],cor_nom_dict_dist), axis=1)
     df["corr_dists_ur"] = df.apply(lambda row : correct_distances_ur(row["sense"], row["start"], row["end"], row["uncorr_dists_ur"]), axis=1)
     #Calculate conserved downstream region
-    dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,200000,threads)
+    dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,150000,threads)
     df["uncorr_dists_dr"] = df.apply(lambda row : apply_dists(row["tdna_ind"],dist_dr_cons), axis=1)
     df["corr_dists_dr"] = df.apply(lambda row : correct_distances(row["sense"], row["start"], row["end"], row["uncorr_dists_dr"]), axis=1)
     #Create tDNAs scheme
