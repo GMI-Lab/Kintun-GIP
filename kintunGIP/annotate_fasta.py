@@ -36,17 +36,23 @@ def annotate_genome(list_fasta, dir_out, file_ext, threads):
                      % (software, software))
     # Run softwares
     for in_file in list_fasta:
-        prefix = ntpath.basename(in_file).replace(f".{file_ext}","")
+        prefix = ntpath.basename(in_file).replace(f".{file_ext}", "")
+        new_fasta = f"{outdir}/{prefix}.fasta"
         outdir = os.path.join(dir_out, ntpath.basename(in_file)+"_annot/")
         os.mkdir(outdir)
+        #Create new fasta, avoids input format problems with tRNAscan-SE
+        with open(in_file,"r") as ori_fasta:
+            for record in SeqIO.parse(new_fasta,"fasta"):
+                with open(new_fasta,"w") as fasta_process:
+                    SeqIO.write(record,fasta_process,"fasta")
         logging.info("Processing %s file %s/%s" % (ntpath.basename(in_file),
                      str(list_fasta.index(in_file)+1), str(len(list_fasta))))
-
-        cmd2 = "tRNAscan-SE -qQ -B %s > %s/%s.prev" %(in_file, outdir, prefix)
+        # Run tRNAscan-SE
+        cmd2 = f"tRNAscan-SE -qQ -B {new_fasta} > {outdir}/{prefix}.prev"
         os.popen(cmd2).read()
-        # Process stdout from Aragorn
+        # Process stdout from tRNAscan-SE
         counter = 1
-        out_file = "%s/%s.trnascanse" %(outdir, prefix)
+        out_file = "%s/%s.tmdnas" %(outdir, prefix)
         with open("%s/%s.prev" %(outdir, prefix), "r") as trnas_in:
             for line in trnas_in:
                 if "Sequence" in line or "Name" in line or "--------" in line or "NNN" in line:
@@ -61,7 +67,6 @@ def annotate_genome(list_fasta, dir_out, file_ext, threads):
                         tdna_sense = "-"
                         tdna_start = sep[3]
                         tdna_end = sep[2]
-
                     #(0)Kp_1084 	1	221662 	221738 	Pro	CGG	0	0	76.0
                     line1 = "%s\ttRNAscan-SE\tt(m)DNA\t%s\t%s\t.\t%s\t.\tID=%s;Name=%s-%s\n" % (
                     prefix, tdna_start, tdna_end, tdna_sense, sep[1].zfill(4), sep[4], sep[5])
@@ -70,7 +75,7 @@ def annotate_genome(list_fasta, dir_out, file_ext, threads):
                         salida.write(line1)
         os.remove("%s/%s.prev" %(outdir, prefix))
         #Run ARAGORN
-        cmd3 = "aragorn -fo -m -gcbact -c -fasta %s > %s/%s.prev" % (in_file, outdir, prefix)
+        cmd3 = f"aragorn -fo -m -gcbact -c -fasta {new_fasta} > {outdir}/{prefix}.prev"
         os.popen(cmd3).read()
         # Process stdout from Aragorn
         counter = 1
@@ -94,7 +99,7 @@ def annotate_genome(list_fasta, dir_out, file_ext, threads):
                     continue
         os.remove("%s/%s.prev" % (outdir, prefix))
         # Run barrnap
-        cmd3 = "barrnap --kingdom bact --threads %s --quiet %s > %s/%s.barrnap" %(threads, in_file, outdir, prefix)
+        cmd3 = "barrnap --kingdom bact --threads %s --quiet %s > %s/%s.rrnas" %(threads, in_file, outdir, prefix)
         os.popen(cmd3).read()
 
 

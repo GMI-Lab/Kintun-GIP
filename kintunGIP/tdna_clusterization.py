@@ -160,6 +160,10 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
                         else:
                             dr_start_pos = ExactPosition(value[1])
                             dr_end_pos = ExactPosition(value[0])
+                        if dr_start_pos < 0:
+                            dr_start_pos = len(record.seq) - dr_start_pos
+                        if dr_end_pos < 0:
+                            dr_end_pos = len(record.seq) - dr_end_pos
                         dr_feature_location = FeatureLocation(dr_start_pos, dr_end_pos)
                         dr_feature_type = "misc_feature"
                         id_string = f'DR_{prefix}_{row["tdna_nom_cor"]}_{index}'
@@ -181,6 +185,10 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
                         else:
                             ur_start_pos = ExactPosition(value[1])
                             ur_end_pos = ExactPosition(value[0])
+                        if ur_start_pos < 0:
+                            ur_start_pos = len(record.seq) - ur_start_pos
+                        if ur_end_pos < 0:
+                            ur_end_pos = len(record.seq) - ur_end_pos
                         ur_feature_location = FeatureLocation(ur_start_pos, ur_end_pos)
                         ur_feature_type = "misc_feature"
                         id_string = f'UR_{prefix}_{row["tdna_nom_cor"]}_{index}'
@@ -210,7 +218,6 @@ def detect_repeated_names(df,tdna,x):
             else:
                 continue
         else:
-# tdna_nom_ile1_2001
             if len(list(df_group[f"tdna_nom_{tdna}_{str(x)}"])) != len(set(list(df_group[f"tdna_nom_{tdna}_{str(x)}"]))):
                 check_list.append(group_name)
     return check_list
@@ -275,14 +282,21 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
         try:
             new_distances[tdna]
         except KeyError:
-            new_distances[tdna] = 1001       
-
+            new_distances[tdna] = 1001
     for tdna in repeated_tdnas:
         corrected_distance = new_distances[tdna]
         corrected_tdna_nom_distance[tdna] = corrected_distance
         sub_df = df.loc[df['nom_ant'] == tdna]
         corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder, file_ext, output_folder, sub_df, corrected_distance, 1, threads))
     return corrected_tdna_nom, corrected_tdna_nom_distance
+
+def final_names_check(df):
+    for group_name, df_group in df.groupby("strain"):
+        duplicates = df_group[df_group.duplicated(subset='tdna_nom_cor', keep=False)].copy()
+        duplicates['tdna_nom_cor'] = duplicates.groupby('tdna_nom_cor').cumcount().add(1).astype(str)
+        duplicates.index = df_group.index[df_group.duplicated(subset='tdna_nom_cor', keep=False)]
+        df.loc[duplicates.index, 'tdna_nom_cor'] = df.loc[duplicates.index, 'tdna_nom_cor'].astype(str) + "_" + duplicates['tdna_nom_cor']
+    return(df)
 
 def extract_sequence_dr(fasta_file, start, end, sense):
     with open(fasta_file, "r") as entrada:
