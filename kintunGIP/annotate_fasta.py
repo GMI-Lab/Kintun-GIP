@@ -37,8 +37,8 @@ def annotate_genome(list_fasta, dir_out, file_ext, threads):
     # Run softwares
     for in_file in list_fasta:
         prefix = ntpath.basename(in_file).replace(f".{file_ext}", "")
-        new_fasta = f"{dir_out}/{prefix}.fasta"
         outdir = os.path.join(dir_out, ntpath.basename(in_file)+"_annot/")
+        new_fasta = f"{outdir}/{prefix}.fasta"
         os.mkdir(outdir)
         #Create new fasta, avoids input format problems with tRNAscan-SE
         with open(in_file,"r") as ori_fasta:
