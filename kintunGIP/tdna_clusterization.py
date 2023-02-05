@@ -496,8 +496,9 @@ def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     # check exclusion nomenclature
     cor_nom_dict,cor_nom_dict_dist = check_exclusion(df,input_folder,file_ext,output_folder,threads)
     df["tdna_nom_cor"] = df.apply(lambda row : correct_nom(row["tdna_ind"],nom_dict,cor_nom_dict), axis=1)
+    df = final_names_check(df)
     # UR sizes 
-    df["uncorr_dists_ur"] = df.apply(lambda row : apply_dists_ur(row["nom_ant_cor"],cor_nom_dict_dist), axis=1)
+    df["uncorr_dists_ur"] = df.apply(lambda row : apply_dists_ur(row["tdna_ind"],cor_nom_dict_dist), axis=1)
     df["corr_dists_ur"] = df.apply(lambda row : correct_distances_ur(row["sense"], row["start"], row["end"], row["uncorr_dists_ur"]), axis=1)
     #Calculate conserved downstream region
     dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,150000,threads)
