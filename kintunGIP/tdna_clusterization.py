@@ -58,7 +58,7 @@ def calculate_locus(infile):
                 
 def write_fasta_and_clusterize(input_folder, file_ext, output_folder, df, win1 ,win2, threads):
     all_tdna_nom = {}
-    for group_name, df_group in df.groupby(["nom_ant"]):
+    for group_name, df_group in df.groupby("nom_ant"):
         # Create fasta
         fasta_file = f"{output_folder}/{group_name}_all.fasta"
         with open(fasta_file, "w") as salida:
@@ -121,7 +121,7 @@ def correct_nom(tdna_id, dict_nom, cor_dict_nom):
         return dict_nom[str(tdna_id)]
 
 def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
-    for group_name, df_group in df.groupby(["strain"]):
+    for group_name, df_group in df.groupby("strain"):
         with open(f"{input_folder}/{group_name}.{file_ext}", "r") as record_file:
             for record in SeqIO.parse(record_file,"fasta"):
                 for row_index, row in df_group.iterrows():
@@ -211,7 +211,7 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
 
 def detect_repeated_names(df,tdna,x):
     check_list = []
-    for group_name, df_group in df.groupby(["strain"]):
+    for group_name, df_group in df.groupby("strain"):
         if x == 1001:
             if len(list(df_group[f"tdna_nom"])) != len(set(list(df_group[f"tdna_nom"]))):
                 check_list.append(group_name)
@@ -232,7 +232,7 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
     corrected_tdna_nom_distance = {}
     corrected_tdna_nom = {}
 
-    for group_name, df_group in df.groupby(["strain"]):
+    for group_name, df_group in df.groupby("strain"):
         if len(list(df_group["tdna_nom"])) != len(set(list(df_group["tdna_nom"]))):
             tdna_list = list(df_group["tdna_nom"])
             d = Counter(tdna_list)
@@ -247,7 +247,7 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
     
     for tdna in repeated_tdnas:
         df_tdna = pd.DataFrame()
-        for group_name, df_group in df.groupby(["nom_ant"]):
+        for group_name, df_group in df.groupby("nom_ant"):
             if group_name == tdna:
                 df_tdna = pd.concat([df_tdna,df_group])
         #df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_prev.csv', index=False)
