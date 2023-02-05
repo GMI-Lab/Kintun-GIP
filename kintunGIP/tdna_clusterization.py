@@ -154,16 +154,20 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
                     record.features.append(new_feature)
                     # create new dr feature
                     for index,value in enumerate(row["corr_dists_dr"]):
-                        if value[0] < value[1]:
-                            dr_start_pos = ExactPosition(value[0])
-                            dr_end_pos = ExactPosition(value[1])
+                        if value[0] < 0:
+                            prev_start_pos = len(record.seq) - value[0]
                         else:
-                            dr_start_pos = ExactPosition(value[1])
-                            dr_end_pos = ExactPosition(value[0])
-                        if dr_start_pos < 0:
-                            dr_start_pos = len(record.seq) - dr_start_pos
-                        if dr_end_pos < 0:
-                            dr_end_pos = len(record.seq) - dr_end_pos
+                            prev_start_pos = value[0]
+                        if value[1] < 0:
+                            prev_end_pos = len(record.seq) - value[1]
+                        else:
+                            prev_end_pos = value[1]                            
+                        if prev_start_pos < prev_end_pos:
+                            dr_start_pos = ExactPosition(prev_start_pos)
+                            dr_end_pos = ExactPosition(prev_end_pos)
+                        else:
+                            dr_start_pos = ExactPosition(prev_end_pos)
+                            dr_end_pos = ExactPosition(prev_start_pos)
                         dr_feature_location = FeatureLocation(dr_start_pos, dr_end_pos)
                         dr_feature_type = "misc_feature"
                         id_string = f'DR_{prefix}_{row["tdna_nom_cor"]}_{index}'
@@ -179,16 +183,20 @@ def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
                         record.features.append(dr_feature)
                     # create new ur feature
                     for index,value in enumerate(row["corr_dists_ur"]):
-                        if value[0] < value[1]:
-                            ur_start_pos = ExactPosition(value[0])
-                            ur_end_pos = ExactPosition(value[1])
+                        if value[0] < 0:
+                            prev_start_pos = len(record.seq) - value[0]
                         else:
-                            ur_start_pos = ExactPosition(value[1])
-                            ur_end_pos = ExactPosition(value[0])
-                        if ur_start_pos < 0:
-                            ur_start_pos = len(record.seq) - ur_start_pos
-                        if ur_end_pos < 0:
-                            ur_end_pos = len(record.seq) - ur_end_pos
+                            prev_start_pos = value[0]
+                        if value[1] < 0:
+                            prev_end_pos = len(record.seq) - value[1]
+                        else:
+                            prev_end_pos = value[1]                            
+                        if prev_start_pos < prev_end_pos:
+                            ur_start_pos = ExactPosition(prev_start_pos)
+                            ur_end_pos = ExactPosition(prev_end_pos)
+                        else:
+                            ur_start_pos = ExactPosition(prev_end_pos)
+                            ur_end_pos = ExactPosition(prev_start_pos)
                         ur_feature_location = FeatureLocation(ur_start_pos, ur_end_pos)
                         ur_feature_type = "misc_feature"
                         id_string = f'UR_{prefix}_{row["tdna_nom_cor"]}_{index}'
