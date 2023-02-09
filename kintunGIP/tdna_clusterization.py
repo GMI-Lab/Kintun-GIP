@@ -34,7 +34,7 @@ dct_ant = dict(GLYACC='gly4', HISATG='his2', CYSACA='cys2', ARGACG='arg1', ASPAT
                PROTGG='pro3', LEUGAG='leu1', ARGTCG='arg5', VALGAC='val2', GLYTCC='gly3',
                PHEGAA='phe1', SECTCA='sec1', CYSGCA='cys1', GLYGCC='gly2', ARGGCG='arg6',
                ILEAAT='ile3', VALCAC='val3', LEUCAA='leu5', LEUCAG='leu4', THRTGT='thr3',
-               SERGCT='ser4', SERACT='ser5', SUPCTA='Sup1', SUPTTA='Sup2', 
+               SERGCT='ser4', SERACT='ser5', SUPCTA='Sup1', SUPTTA='Sup2', SUPTCA='Sup3',
                ILE2CAT='ile3', FMETCAT='fmet1', ssrA='ssrA')
 
 # Functions
