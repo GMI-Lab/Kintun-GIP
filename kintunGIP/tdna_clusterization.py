@@ -258,12 +258,10 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
         for group_name, df_group in df.groupby("nom_ant"):
             if group_name == tdna:
                 df_tdna = pd.concat([df_tdna,df_group])
-        #df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_prev.csv', index=False)
         # First try
         nom_dict_new = write_fasta_and_clusterize(input_folder, file_ext, output_folder, df_tdna, 251, 1, threads)
         logging.info(f"Creating tdna_nom_{tdna}_{251} column")
         df_tdna[f"tdna_nom_{tdna}_{251}"] = df_tdna.apply(lambda row: apply_new_nom(row["tdna_ind"], nom_dict_new), axis=1)
-        #df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_{251}.csv', index=False)
         # Loop
         window_values = [251,500,2001,4001,6001,8001,10001,20001,50001,100001]
         for index,value in enumerate(window_values):
@@ -278,7 +276,6 @@ def check_exclusion(df,input_folder,file_ext,output_folder,threads):
                 nom_dict_new = write_fasta_and_clusterize(input_folder, file_ext, output_folder, df_tdna, value, 1, threads)
                 logging.info(f"Creating tdna_nom_{tdna}_{str(value)} column")
                 df_tdna[f"tdna_nom_{tdna}_{str(value)}"] = df_tdna.apply(lambda row: apply_new_nom(row["tdna_ind"], nom_dict_new), axis=1)
-                df_tdna.to_csv(f'{output_folder}/export_{tdna}_tdnas_test_{str(value)}.csv', index=False)
                 if len(detect_repeated_names(df_tdna,tdna,value)) > 1:
                     continue
                 else:
