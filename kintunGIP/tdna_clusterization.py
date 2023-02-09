@@ -506,7 +506,7 @@ def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
     df["uncorr_dists_ur"] = df.apply(lambda row : apply_dists_ur(row["tdna_ind"],cor_nom_dict_dist), axis=1)
     df["corr_dists_ur"] = df.apply(lambda row : correct_distances_ur(row["sense"], row["start"], row["end"], row["uncorr_dists_ur"]), axis=1)
     #Calculate conserved downstream region
-    dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,150000,threads)
+    dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,250000,threads)
     df["uncorr_dists_dr"] = df.apply(lambda row : apply_dists(row["tdna_ind"],dist_dr_cons), axis=1)
     df["corr_dists_dr"] = df.apply(lambda row : correct_distances(row["sense"], row["start"], row["end"], row["uncorr_dists_dr"]), axis=1)
     #Create tDNAs scheme
