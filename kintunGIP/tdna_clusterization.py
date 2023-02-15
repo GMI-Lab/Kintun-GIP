@@ -76,7 +76,7 @@ def write_fasta_and_clusterize(input_folder, file_ext, output_folder, df, win1 ,
                 salida.write(f"{DR_seq}\n")
         # Clusterize with MMSeqs
         cmd = f"mmseqs easy-cluster {fasta_file} {fasta_file}_clusterRes_{str(win1)} {output_folder}/tmp/ " \
-              f"-c 0.95 -v 0 --threads {threads}"
+              f"-c 0.9 -v 0 --threads {threads}"
         p = subprocess.run(cmd, shell=True)
         #os.remove(fasta_file)
         os.remove(f"{fasta_file}_clusterRes_{str(win1)}_all_seqs.fasta")
