@@ -346,7 +346,7 @@ def conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,d
                     salida.write(str(DR_seq)+"\n")
                     records_ids.append(row["tdna_ind"])                                    
             # SibeliaZ and maf2synteny exec
-            cmd_sibeliaz = f"sibeliaz -n -t {threads} -o {output_folder}/tmp_sibelia/ {fasta_file} ; maf2synteny -b 5000 -o {output_folder}/tmp_sibelia/ {output_folder}/tmp_sibelia/blocks_coords.gff"
+            cmd_sibeliaz = f"sibeliaz -k 11 -n -t {threads} -o {output_folder}/tmp_sibelia/ {fasta_file} ; maf2synteny -b 5000 -o {output_folder}/tmp_sibelia/ {output_folder}/tmp_sibelia/blocks_coords.gff"
             p = subprocess.run(cmd_sibeliaz, shell=True)               
             with open(f"{output_folder}/tmp_sibelia/5000/blocks_coords.txt","r") as lcbs_file:
                 fields = "".join(lcbs_file.readlines()).split(f"{80*'-'}\n")
