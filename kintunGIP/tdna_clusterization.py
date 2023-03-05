@@ -111,7 +111,8 @@ def create_lcbs_df(blocks_file, list_files):
         dct_codes[line[0]] = line[-1]
     rows_lcb = [create_dict_row(block, dct_codes, dct_files) for block in conserved_lcb]
     new_rows = [row for group in rows_lcb for row in group]
-    df = df.append(new_rows, ignore_index=True)
+    df_new = pd.DataFrame(new_rows, columns=["strain","method","type","start","end","na1","sense","na2","ID"])
+    df = pd.concat([df,df_new])
 
     for group_name, df_group in df.groupby("strain"):
         df_group['ID'] = df_group['ID'] + '_' + df_group.groupby('ID').cumcount().add(1).astype(str)
