@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on Mon Oct 12 18:34:12 2020
@@ -11,7 +11,6 @@ import pandas as pd
 import os
 import glob
 import shutil
-import string
 import subprocess
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature
@@ -20,6 +19,12 @@ from Bio.SeqFeature import FeatureLocation
 from collections import Counter
 import numpy as np
 import logging
+import ntpath
+from tqdm.auto import tqdm
+from sklearn.cluster import DBSCAN
+import scipy.spatial
+from collections import Counter
+import string
 
 # Dictionary with anticodon codes
 dct_ant = dict(GLYACC='gly4', HISATG='his2', CYSACA='cys2', ARGACG='arg1', ASPATC='asp2',
@@ -43,481 +48,403 @@ def apply_ant_dict(ID_info):
     if "Name=tmRNA" in ID_info:
         tmdna_id = "ssrA"
     else:
-        anticodon = ID_info.split("Name=")[1].replace("-","")
+        anticodon = ID_info.split("Name=")[1].replace("-", "")
         tmdna_id = dct_ant[anticodon.upper()]
     return tmdna_id
 
-def calculate_locus(infile):
-    locus_id = 0
-    list_tmdnas = []
-    with open(infile, "r") as entrada:
-        for line in entrada.readlines():
-            sep = line.strip().split("\t")
-            list_tmdnas.append((sep[3],sep[4],sep[6]))
-    return list_tmdnas
-                
-def write_fasta_and_clusterize(input_folder, file_ext, output_folder, df, win1 ,win2, threads):
-    all_tdna_nom = {}
-    for group_name, df_group in df.groupby("nom_ant"):
-        # Create fasta
-        fasta_file = f"{output_folder}/{group_name}_all.fasta"
-        with open(fasta_file, "w") as salida:
-            for row_index, row in df_group.iterrows():
-                in_file = f"{input_folder}/{row['strain']}.{file_ext}"
-                if row['sense'] == "+":
-                    with open(in_file,"r") as entrada:
-                        for record in SeqIO.parse(entrada,"fasta"):
-                            DR_seq = str(record.seq[row["start"]-win1:row["start"]-win2]).upper()
-                else:
-                    with open(in_file,"r") as entrada:
-                        for record in SeqIO.parse(entrada,"fasta"):
-                            DR_seq = str(record.seq[row["end"]+win2:row["end"]+win1].reverse_complement()).upper()
-                salida.write(f">{str(row['tdna_ind'])}_-_{row['nom_ant']}_-_{row['strain']}\n")
-                salida.write(f"{DR_seq}\n")
-        # Clusterize with MMSeqs
-        cmd = f"mmseqs easy-cluster {fasta_file} {fasta_file}_clusterRes_{str(win1)} {output_folder}/tmp/ " \
-              f"-c 0.9 -v 0 --threads {threads}"
-        p = subprocess.run(cmd, shell=True)
-        #os.remove(fasta_file)
-        os.remove(f"{fasta_file}_clusterRes_{str(win1)}_all_seqs.fasta")
-        #Abre el archivo de las asignaciones
-        with open(f"{fasta_file}_clusterRes_{str(win1)}_cluster.tsv", "r") as tsv_file:
-            #Lee el archivo de asignaciones
-            lines = [i.strip().split("\t") for i in tsv_file.readlines()]
-            #Procesa los pares asociados
-            pairs = []
-            for i in lines:
-                pairs.append((i[0],i[1]))
-            result = {}
-            for sub_tuple in pairs:
-               # checking the first element of the tuple in the result
-               if sub_tuple[0] in result:
-                  # adding the current tuple values without first one
-                  result[sub_tuple[0]] = (*result[sub_tuple[0]], *sub_tuple[1:])
-               else:
-                  # adding the tuple
-                  result[sub_tuple[0]] = sub_tuple
-            # en groups estan los clusters
-            groups = [tuple(set(i)) for i in result.values()]
-            groups.sort(key=lambda t: len(t), reverse=True)
-            alphabet = list(string.ascii_uppercase) + [
-                i + j for j in list(string.ascii_uppercase) for i in list(string.ascii_uppercase)]
-            tdna_nom = {}
-            for index, value in enumerate(groups):
-                for tdna in value:
-                    tdna_nom[tdna.split("_-_")[0]] = tdna.split("_-_")[1] + alphabet[index]
-            all_tdna_nom.update(tdna_nom)
-            os.remove(f"{fasta_file}_clusterRes_{str(win1)}_cluster.tsv")
-            os.remove(fasta_file)
-    return all_tdna_nom
 
-def apply_new_nom(tdna_id, dict_nom):
-    return dict_nom[str(tdna_id)]
+def accession_dct(list_files):
+  str_dct = {}
+  for in_file in list_files:
+    with open(in_file,"r") as strain_file:
+      for record in SeqIO.parse(in_file, "fasta"):
+        str_dct[record.id] = ntpath.basename(in_file).replace(f".fasta", "")
+  return str_dct
 
-def correct_nom(tdna_id, dict_nom, cor_dict_nom):
-    try:
-        return cor_dict_nom[str(tdna_id)]
-    except KeyError:
-        return dict_nom[str(tdna_id)]
+def check_core(no_strains, lcb_group):
+  codes = [int(i.split("\t")[0]) for i in lcb_group[2:]]
+  for num in range(1,no_strains+1):
+    if num not in codes:
+      return False
+  return True
 
-def create_genbanks(input_folder,file_ext,output_folder,df,prefix):
-    for group_name, df_group in df.groupby("strain"):
-        with open(f"{input_folder}/{group_name}.{file_ext}", "r") as record_file:
-            for record in SeqIO.parse(record_file,"fasta"):
-                for row_index, row in df_group.iterrows():
-                    # positions
-                    start_pos = ExactPosition(row["start"])
-                    end_pos = ExactPosition(row["end"])
-                    feature_location = FeatureLocation(start_pos, end_pos)
-                    # type
-                    if "Name=tmRNA" in row["ID"]:
-                        feature_type = "tmRNA"
-                    else:
-                        feature_type = "tRNA"
-                    # strand
-                    if row["sense"] == "+":
-                        feature_strand = 1
-                    else:
-                        feature_strand = -1
-                    # create new tmrna feature
-                    new_feature = SeqFeature(
-                        feature_location,
-                        type=feature_type,
-                        strand=feature_strand,
-                        id=row["tdna_ind"],
-                        qualifiers={
-                           "locus_tag" : f"{prefix}_{row['tdna_nom_cor']}",
-                           "product": row["ID"],
-                           "Kintun_GPI-tmDNAclass" : f"{prefix}_{row['tdna_nom_cor']}"
-                           }
-                        )
-                    record.features.append(new_feature)
-                    # create new dr feature
-                    for index,value in enumerate(row["corr_dists_dr"]):
-                        if value[0] < 0:
-                            prev_start_pos = len(record.seq) - value[0]
-                        else:
-                            prev_start_pos = value[0]
-                        if value[1] < 0:
-                            prev_end_pos = len(record.seq) - value[1]
-                        else:
-                            prev_end_pos = value[1]                            
-                        if prev_start_pos < prev_end_pos:
-                            dr_start_pos = ExactPosition(prev_start_pos)
-                            dr_end_pos = ExactPosition(prev_end_pos)
-                        else:
-                            dr_start_pos = ExactPosition(prev_end_pos)
-                            dr_end_pos = ExactPosition(prev_start_pos)
-                        dr_feature_location = FeatureLocation(dr_start_pos, dr_end_pos)
-                        dr_feature_type = "misc_feature"
-                        id_string = f'DR_{prefix}_{row["tdna_nom_cor"]}_{index}'
-                        dr_feature = SeqFeature(
-                        dr_feature_location,
-                        type = dr_feature_type,
-                        strand = 0,
-                        id = id_string,
-                        qualifiers={
-                           "locus_tag" : id_string,
-                           }
-                        )
-                        record.features.append(dr_feature)
-                    # create new ur feature
-                    for index,value in enumerate(row["corr_dists_ur"]):
-                        if value[0] < 0:
-                            prev_start_pos = len(record.seq) - value[0]
-                        else:
-                            prev_start_pos = value[0]
-                        if value[1] < 0:
-                            prev_end_pos = len(record.seq) - value[1]
-                        else:
-                            prev_end_pos = value[1]                            
-                        if prev_start_pos < prev_end_pos:
-                            ur_start_pos = ExactPosition(prev_start_pos)
-                            ur_end_pos = ExactPosition(prev_end_pos)
-                        else:
-                            ur_start_pos = ExactPosition(prev_end_pos)
-                            ur_end_pos = ExactPosition(prev_start_pos)
-                        ur_feature_location = FeatureLocation(ur_start_pos, ur_end_pos)
-                        ur_feature_type = "misc_feature"
-                        id_string = f'UR_{prefix}_{row["tdna_nom_cor"]}_{index}'
-                        ur_feature = SeqFeature(
-                        ur_feature_location,
-                        type = ur_feature_type,
-                        strand = 0,
-                        id = id_string,
-                        qualifiers={
-                           "locus_tag" : id_string,
-                           }
-                        )
-                        record.features.append(ur_feature)      
-                    record.annotations["molecule_type"] = "DNA"
-                    record.annotations["form"] = "double stranded"
-                    record.annotations["topology"] = "circular"
-                # export genbank
-                with open(f"{output_folder}/{group_name}_kintun-clust.gb", "w") as output_file:
-                    SeqIO.write(record, output_file, "gb")
 
-def detect_repeated_names(df,tdna,x):
-    check_list = []
-    for group_name, df_group in df.groupby("strain"):
-        if x == 1001:
-            if len(list(df_group[f"tdna_nom"])) != len(set(list(df_group[f"tdna_nom"]))):
-                check_list.append(group_name)
-            else:
-                continue
+def create_dict_row(block, dct_codes, dct_files):
+    new_rows = []
+    ident = block[0].split()[1][1:]
+    for rline in block[2:]:
+        lcb = rline.strip().split("\t")
+        if int(lcb[-3]) < int(lcb[-2]):
+            lcb_start = int(lcb[-3])
+            lcb_end = int(lcb[-2])
         else:
-            if len(list(df_group[f"tdna_nom_{tdna}_{str(x)}"])) != len(set(list(df_group[f"tdna_nom_{tdna}_{str(x)}"]))):
-                check_list.append(group_name)
-    return check_list
+            lcb_start = int(lcb[-2])
+            lcb_end = int(lcb[-3])
+        new_row = {
+            "strain": dct_files[dct_codes[lcb[0]]],
+            "method": "SibeliaZ-core",
+            "type"  : "LCB-Core",
+            "start" : lcb_start,
+            "end"   : lcb_end,
+            "na1"   : ".",
+            "sense" : lcb[-4],
+            "na2"   : ".",
+            "ID"    : f"Name=Block_#{ident}"
+        }
+        new_rows.append(new_row)
+    return new_rows
 
-def check_exclusion(df,input_folder,file_ext,output_folder,threads):
-    """
-    A single chromosome cannot have
-    two t(m)DNAS with the same name
-    """
-    repeated_tdnas_prev = []
-    new_distances = {}
-    corrected_tdna_nom_distance = {}
-    corrected_tdna_nom = {}
 
-    for group_name, df_group in df.groupby("strain"):
-        if len(list(df_group["tdna_nom"])) != len(set(list(df_group["tdna_nom"]))):
-            tdna_list = list(df_group["tdna_nom"])
-            d = Counter(tdna_list)
-            repeated_tdnas_prev = repeated_tdnas_prev + [item for item in d if d[item]>1]
-    repeated_tdnas = []
-    for i in repeated_tdnas_prev:
-        if i[:-1] not in repeated_tdnas:
-            repeated_tdnas.append(i[:-1])
-        else:
-            continue
-    logging.info(f"Detected problems with the following tmDNAs {' '.join(repeated_tdnas)}")
-    
-    for tdna in repeated_tdnas:
-        df_tdna = pd.DataFrame()
-        for group_name, df_group in df.groupby("nom_ant"):
-            if group_name == tdna:
-                df_tdna = pd.concat([df_tdna,df_group])
-        # First try
-        nom_dict_new = write_fasta_and_clusterize(input_folder, file_ext, output_folder, df_tdna, 251, 1, threads)
-        logging.info(f"Creating tdna_nom_{tdna}_{251} column")
-        df_tdna[f"tdna_nom_{tdna}_{251}"] = df_tdna.apply(lambda row: apply_new_nom(row["tdna_ind"], nom_dict_new), axis=1)
-        # Loop
-        window_values = [251,500,2001,4001,6001,8001,10001,20001,50001,100001]
-        for index,value in enumerate(window_values):
-            if index == 0:
-                problem_detected = detect_repeated_names(df_tdna,tdna,value)
-                logging.info(f"index = {index}, found problem with {' '.join(problem_detected)}")
-            else:
-                problem_detected = detect_repeated_names(df_tdna,tdna,window_values[index-1])
-                logging.info(f"index = {index}, found problem with {' '.join(problem_detected)}")
-            if len(problem_detected) > 1:
-                logging.info(f"Checking {tdna} with {str(value)} pb windows")
-                nom_dict_new = write_fasta_and_clusterize(input_folder, file_ext, output_folder, df_tdna, value, 1, threads)
-                logging.info(f"Creating tdna_nom_{tdna}_{str(value)} column")
-                df_tdna[f"tdna_nom_{tdna}_{str(value)}"] = df_tdna.apply(lambda row: apply_new_nom(row["tdna_ind"], nom_dict_new), axis=1)
-                if len(detect_repeated_names(df_tdna,tdna,value)) > 1:
-                    continue
-                else:
-                    new_distances[tdna] = value
-                    break
-            else:
-                new_distances[tdna] = value
-                break
-        try:
-            new_distances[tdna]
-        except KeyError:
-            new_distances[tdna] = 1001
-    for tdna in repeated_tdnas:
-        corrected_distance = new_distances[tdna]
-        corrected_tdna_nom_distance[tdna] = corrected_distance
-        sub_df = df.loc[df['nom_ant'] == tdna]
-        corrected_tdna_nom.update(write_fasta_and_clusterize(input_folder, file_ext, output_folder, sub_df, corrected_distance, 1, threads))
-    return corrected_tdna_nom, corrected_tdna_nom_distance
-
-def final_names_check(df):
-    for group_name, df_group in df.groupby("strain"):
-        duplicates = df_group[df_group.duplicated(subset='tdna_nom_cor', keep=False)].copy()
-        duplicates['tdna_nom_cor'] = duplicates.groupby('tdna_nom_cor').cumcount().add(1).astype(str)
-        duplicates.index = df_group.index[df_group.duplicated(subset='tdna_nom_cor', keep=False)]
-        df.loc[duplicates.index, 'tdna_nom_cor'] = df.loc[duplicates.index, 'tdna_nom_cor'].astype(str) + "_" + duplicates['tdna_nom_cor']
-    return(df)
-
-def extract_sequence_dr(fasta_file, start, end, sense):
-    with open(fasta_file, "r") as entrada:
-        for record in SeqIO.parse(entrada,"fasta"):
-            # concatenates_chromosomes
-            seq_sum = record.seq + record.seq
-            # new_coordinates
-            if start < 0 and end < 0:
-                dr_start = len(record.seq) + start
-                dr_end = len(record.seq) + end
-            elif start < 0 and end >= 0:
-                dr_start = len(record.seq) + start
-                dr_end = len(record.seq) + end
-            else:
-                dr_start = start
-                dr_end = end
-            # chech_sense and export
-            if sense == "+":
-                dr_seq = seq_sum[dr_start:dr_end].upper()
-            else:
-                dr_seq = seq_sum[dr_start:dr_end].reverse_complement()
-            # return
-            return dr_seq
-
-def conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,win1,threads):
-    all_tdna_dists = {}
-    for group_name, df_group in df.groupby(["tdna_nom_cor"]):
-        if len(df_group) > 1:
-            # ids in a list
-            records_ids = []                        
-            # Create fasta with DR regions
-            fasta_file = output_folder + "dr_" + group_name + "_all.fasta"
-            with open(fasta_file, "w") as salida:
-                for row_index, row in df_group.iterrows():
-                    strain_fasta = f"{input_folder}/{row['strain']}.{file_ext}"
-                    if row['sense'] == "+":
-                        DR_seq = extract_sequence_dr(strain_fasta, row["end"]+1, row["end"]+win1, "+")
-                    else:
-                        DR_seq = extract_sequence_dr(strain_fasta, row["start"]-win1, row["start"]-1, "-")
-                    #salida
-                    salida.write(">"+str(row["tdna_ind"])+"_-_"+row["tdna_nom_cor"]+"_-_"+row["strain"]+"\n")
-                    salida.write(str(DR_seq)+"\n")
-                    records_ids.append(row["tdna_ind"])                                    
-            # SibeliaZ and maf2synteny exec
-            cmd_sibeliaz = f"sibeliaz -k 11 -n -t {threads} -o {output_folder}/tmp_sibelia/ {fasta_file} ; maf2synteny -b 5000 -o {output_folder}/tmp_sibelia/ {output_folder}/tmp_sibelia/blocks_coords.gff"
-            p = subprocess.run(cmd_sibeliaz, shell=True)               
-            with open(f"{output_folder}/tmp_sibelia/5000/blocks_coords.txt","r") as lcbs_file:
-                fields = "".join(lcbs_file.readlines()).split(f"{80*'-'}\n")
-                # Extract information
-                seqs = [ i.strip().split("\n") for i in fields if not "Block #" in i]
-                groups = [ i.strip().split("\n") for i in fields if "Block #" in i]
-                conserved_lcb = [i for i in groups if len(i) == len(list_files)+2]
-                # Obtain coords
-                dct_codes = {}
-                lcbs = []
-                for i in seqs[0][1:]:
-                    line = i.strip().split("\t")
-                    dct_codes[line[0]] = line[-1]
-                for block in conserved_lcb:
-                    for rline in block[2:]:
-                        lcb = rline.strip().split("\t")
-                        lcbs.append((dct_codes[lcb[0]],int(lcb[-3]),int(lcb[-2])))
-                            
-            # Process data
-            tdna_nom = {}
-            for index, value in enumerate(records_ids):
-                tdna_nom[value] = [(i[1],i[2]) for i in lcbs if i[0].split("_-_")[0] == str(value)]
-                all_tdna_dists.update(tdna_nom)
-            shutil.rmtree(f"{output_folder}/tmp_sibelia/")
-            os.remove(fasta_file)
-        elif len(df_group) == 1:
-            for row_index, row in df_group.iterrows():
-                all_tdna_dists[row["tdna_ind"]] = [(1,2001)]
-            #eliminar la carpeta
-    return all_tdna_dists
-
-def apply_dists(tdna_id, dict_dist):
-    return dict_dist[tdna_id]
-
-def apply_dists_ur(nom_ant, dict_dist):
-    dict_dist_ant = {}
-    distances = [dict_dist[i] for i in dict_dist.keys()]
-    nom_ant_cor = [i[:-1] for i in dict_dist.keys()]
-    for index,value in enumerate(nom_ant_cor):
-        dict_dist_ant[value] = distances[index]
-    if nom_ant in dict_dist_ant.keys():
-        return dict_dist_ant[nom_ant]
-    else:
-        return 1001
-
-def correct_distances(sense, tdna_start, tdna_end, coordinates):
-    corrected_coordinates = []
-    if sense == "+":
-        for i in coordinates:
-            if i[1] < 2001:
-                pos_start = i[0]
-                pos_end = i[1]
-                new_start = tdna_end + pos_start
-                new_end = tdna_end + pos_end
-                corrected_coordinates.append((new_start,new_end))
-            elif i[1] > 2001:
-                pos_start = i[0]
-                pos_end = i[0] + 2001 
-                new_start = tdna_end + pos_start
-                new_end = tdna_end + pos_end
-                corrected_coordinates.append((new_start,new_end))
-            else:
-                corrected_coordinates.append((tdna_end+1,tdna_end+2001))
-    else:
-        for i in coordinates:
-            if i[1] < 2001:
-                pos_start = i[0]
-                pos_end = i[1]
-                new_start = tdna_start - pos_start
-                new_end = tdna_start - pos_end
-                corrected_coordinates.append((new_start,new_end))
-            elif i[1] > 2001:
-                pos_start = i[0]
-                pos_end = i[0] + 2001
-                new_start = tdna_start - pos_start
-                new_end = tdna_start - pos_end
-                corrected_coordinates.append((new_start,new_end))
-                break
-            else:
-                corrected_coordinates.append((tdna_start-1,tdna_start-2001))
-    return corrected_coordinates
-
-def correct_distances_ur(sense, tdna_start, tdna_end, distance):
-    corrected_coordinates = []
-    if sense == "-":
-        new_start = tdna_end + 1
-        new_end = tdna_end + distance
-        corrected_coordinates.append((new_start,new_end))
-    else:
-        new_start = tdna_start - distance
-        new_end = tdna_start - 1
-        corrected_coordinates.append((new_start,new_end))
-    return corrected_coordinates
-
-def create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, prefix):
-    with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","w") as output:
-        output.write("#tdna_name\tprevalence\tstrain\tur_seq\ttdna_seq\tdr_seq\n")            
-    # check by anticodon
-    for file in list_reps:
-        ids = []
-        with open(file,"r") as in_file:
-            for line in in_file:
-                if line[0] != ">":
-                    continue
-                else:
-                    ids.append(line.strip().replace(">","").split("_-_"))        
-        for tdna_class in ids:
-            rep_locus = df.loc[df["tdna_ind"] == int(tdna_class[0])]
-            tdna_name = rep_locus.tdna_nom_cor.item()
-            strain = rep_locus.strain.item()
-            prevalence = len(df.loc[df.tdna_nom_cor == tdna_name])
-            with open(f"{input_folder}/{strain}.{file_ext}","r") as strain_seq:
-                for record in SeqIO.parse(strain_seq,"fasta"):
-                    if rep_locus.sense.item() == "+":
-                        tdna_seq = record.seq[rep_locus.start.item():rep_locus.end.item()+1]
-                        ur_seq = ''
-                        for j in rep_locus.corr_dists_ur.item():
-                            ur_seq += record.seq[j[0]:j[1]+1]
-                        dr_seq = ''
-                        for k in rep_locus.corr_dists_dr.item():
-                            dr_seq += record.seq[k[0]:k[1]+1]
-                    else:
-                        tdna_seq = record.seq[rep_locus.start.item():rep_locus.end.item()+1].reverse_complement()
-                        ur_seq = ''
-                        for j in rep_locus.corr_dists_ur.item():
-                            ur_seq += record.seq[j[0]:j[1]+1].reverse_complement()
-                        dr_seq = ''
-                        for k in rep_locus.corr_dists_dr.item():
-                            dr_seq += record.seq[k[1]:k[0]+1].reverse_complement()
-            with open(f"{output_folder}/{prefix}_tdna_scheme.tsv","a") as output:
-                output.write(f"{prefix}_{tdna_name}\t{prevalence}\t{strain}\t{ur_seq}\t{tdna_seq}\t{dr_seq}\n")
-
-def tdna_clusterization(input_folder,output_folder,file_ext,nom_ext,threads):
-    # Create list of files .aragorn
-    list_files = glob.glob(f'{output_folder}/*/*.tmdnas', recursive=True)
-    # Create empty dataframes with column numbers
+def create_lcbs_df(blocks_file, list_files):
     df = pd.DataFrame(columns=["strain","method","type","start","end","na1","sense","na2","ID"])
-    # For each file add data to the df Dataframe
+    dct_files = accession_dct(list_files)
+    with open(blocks_file,"r") as lcbs_file:
+        fields = "".join(lcbs_file.readlines()).split(f"{80*'-'}\n")
+        # Extract information
+        seqs = [i.strip().split("\n") for i in fields if not "Block #" in i][0][1:]
+        groups = [ i.strip().split("\n") for i in fields if "Block #" in i]
+        conserved_lcb = [i for i in groups if check_core(len(seqs),i)]
+        # Obtain coords
+    dct_codes = {}
+    for i in seqs:
+        line = i.strip().split("\t")
+        dct_codes[line[0]] = line[-1]
+    rows_lcb = [create_dict_row(block, dct_codes, dct_files) for block in conserved_lcb]
+    new_rows = [row for group in rows_lcb for row in group]
+    df = df.append(new_rows, ignore_index=True)
+
+    for group_name, df_group in df.groupby("strain"):
+        df_group['ID'] = df_group['ID'] + '_' + df_group.groupby('ID').cumcount().add(1).astype(str)
+        df.update(df_group)
+    return df
+
+  
+def create_tmdnas_df(list_files):
+    df = pd.DataFrame(columns=["strain","method","type","start","end","na1","sense","na2","ID"])
     for infile in list_files:
         df2 = pd.read_csv(infile, sep="\t", names=["strain","method","type","start","end","na1","sense","na2","ID"])
-        df = pd.concat([df,df2])
-    #Delete no data columns
-    df.drop(["method","type","na1","na2"], axis=1, inplace=True)
-    #Corrects indexes
-    df.reset_index(inplace=True, drop=True)
-    #Add some info
-    df["nom_ant"] = df.apply(lambda row : apply_ant_dict(row["ID"]), axis=1)
-    df['tdna_ind'] = range(1, len(df) + 1)
-    # defines nomenclature
-    nom_dict = write_fasta_and_clusterize(input_folder,file_ext,output_folder,df,1001,1,threads)
-    df["tdna_nom"] = df.apply(lambda row : apply_new_nom(row["tdna_ind"],nom_dict), axis=1)
-    # check exclusion nomenclature
-    cor_nom_dict,cor_nom_dict_dist = check_exclusion(df,input_folder,file_ext,output_folder,threads)
-    df["tdna_nom_cor"] = df.apply(lambda row : correct_nom(row["tdna_ind"],nom_dict,cor_nom_dict), axis=1)
-    df = final_names_check(df)
-    # UR sizes 
-    df["uncorr_dists_ur"] = df.apply(lambda row : apply_dists_ur(row["tdna_ind"],cor_nom_dict_dist), axis=1)
-    df["corr_dists_ur"] = df.apply(lambda row : correct_distances_ur(row["sense"], row["start"], row["end"], row["uncorr_dists_ur"]), axis=1)
-    #Calculate conserved downstream region
-    dist_dr_cons = conserved_downstream_blocks(list_files,input_folder,file_ext,output_folder,df,250000,threads)
-    df["uncorr_dists_dr"] = df.apply(lambda row : apply_dists(row["tdna_ind"],dist_dr_cons), axis=1)
-    df["corr_dists_dr"] = df.apply(lambda row : correct_distances(row["sense"], row["start"], row["end"], row["uncorr_dists_dr"]), axis=1)
-    #Create tDNAs scheme
-    list_reps = glob.glob(f'{output_folder}/*_rep_seq.fasta', recursive=True)
-    create_tdnas_scheme(input_folder,file_ext,output_folder,list_reps, df, nom_ext)
-    #Create genbanks with annotations
-    create_genbanks(input_folder,file_ext,output_folder,df,nom_ext)
-    #Remove cluster files
-    for j in glob.glob(f'{output_folder}/*rep_seq.fasta', recursive=True):
-        os.remove(j)
-    #Remove tmp folder
-    shutil.rmtree(f"{output_folder}/tmp/")
+        df = pd.concat([df,df2], ignore_index=True)
+    return df
 
-   
+  
+def delete_non_core(lcbdf):
+    groups = lcbdf.groupby("ID")
+    filtered_groups = groups.filter(lambda x: len(x) >= lcbdf['strain'].nunique())
+    new_df = filtered_groups.groupby("ID").apply(lambda x: pd.concat([x]))
+    new_df.rename(columns = {'ID':'IDs'}, inplace = True)
+    return new_df
+
+  
+def run_sibeliaz(list_files, output_folder, threads):
+    cmd_sibeliaz = f"sibeliaz -k 11 -n -t {threads} -o {output_folder}/all_chr_sibelia/ {' '.join(list_files)} ; maf2synteny -b 50 -o {output_folder}/all_chr_sibelia/ {output_folder}/all_chr_sibelia/blocks_coords.gff"
+    p = subprocess.run(cmd_sibeliaz, shell=True)
+
+    
+def seqlen_dct(list_files, file_ext):
+  str_dct = {}
+  for in_file in list_files:
+    with open(in_file,"r") as strain_file:
+      for record in SeqIO.parse(in_file, "fasta"):
+        str_dct[ntpath.basename(in_file).replace(f".{file_ext}", "")] = len(record.seq)
+  return str_dct
+
+
+def overlap_at_start(r1, r2):
+    """Check if two ranges overlap at the start."""
+    return r1[0] == r2[0] or (r1[0] < r2[0] and r1[1] > r2[0])
+
+  
+def overlap_at_end(r1, r2):
+    """Check if two ranges overlap at the end."""
+    return r1[1] == r2[1] or (r1[0] < r2[1] and r1[1] > r2[1])
+
+  
+def check_if_overlap(range1, range2):
+    return not (range1[1] < range2[0] or range2[1] < range1[0])
+
+  
+def find_nearest_range(point, ranges):
+    """Find the nearest range in a list of ranges to a given point."""
+    nearest_range = min(ranges, key=lambda r: abs(point - r[0]))
+    return nearest_range
+
+  
+def up_lcb_finder(row, dct_len, lcbdf):
+    len_seq = dct_len[row.strain]
+    strain_lcb = lcbdf[lcbdf['strain'] == row.strain]
+    strain_lcb = strain_lcb.sort_values(by=["start"])
+    lcb_tuples_ori = [(start, end) for start,end in zip(strain_lcb['start'], strain_lcb['end'])]
+    lcb_tuples =     [(start, end) for start,end in zip(strain_lcb['start'], strain_lcb['end'])]
+    lcb_tuples.append((lcb_tuples[-1][0]-len_seq,lcb_tuples[-1][1]-len_seq))
+    lcb_tuples.append((lcb_tuples[0][0]+len_seq,lcb_tuples[0][1]+len_seq))
+    non_overlap = [lcb for lcb in lcb_tuples if not check_if_overlap(lcb, (row.start,row.end))]
+    nearest_ur = find_nearest_range(row.start, [ranges for ranges in non_overlap if ranges[0] < row.start])
+    prev_start = nearest_ur[0]
+    if prev_start < 0:
+        lcb_start = lcb_tuples_ori[-1][0]
+    elif prev_start > len_seq:
+        lcb_start = lcb_tuples_ori[0][0]
+    else:
+        lcb_start = prev_start
+    lcb_ur = strain_lcb.loc[strain_lcb["start"] == lcb_start]
+    return((lcb_ur.iloc[0]["IDs"], lcb_ur.iloc[0]["start"], lcb_ur.iloc[0]["end"], lcb_ur.iloc[0]["sense"]))
+
+  
+def down_lcb_finder(row, dct_len, lcbdf):
+    len_seq = dct_len[row.strain]
+    strain_lcb = lcbdf[lcbdf['strain'] == row.strain]
+    strain_lcb = strain_lcb.sort_values(by=["start"])
+    lcb_tuples_ori = [(start, end) for start,end in zip(strain_lcb['start'], strain_lcb['end'])]
+    lcb_tuples = [(start, end) for start,end in zip(strain_lcb['start'], strain_lcb['end'])]
+    lcb_tuples.append((lcb_tuples[-1][0]-len_seq,lcb_tuples[-1][1]-len_seq))
+    lcb_tuples.append((lcb_tuples[0][0]+len_seq,lcb_tuples[0][1]+len_seq))
+    non_overlap = [lcb for lcb in lcb_tuples if not check_if_overlap(lcb, (row.start,row.end))]
+    nearest_ur = find_nearest_range(row.start, [ranges for ranges in non_overlap if ranges[0] > row.end])
+    prev_start = nearest_ur[0]
+    if prev_start < 0:
+        lcb_start = lcb_tuples_ori[-1][0]
+    elif prev_start > len_seq:
+        lcb_start = lcb_tuples_ori[0][0]
+    else:
+        lcb_start = prev_start
+    lcb_ur = strain_lcb.loc[strain_lcb["start"] == lcb_start]
+    return((lcb_ur.iloc[0]["IDs"], lcb_ur.iloc[0]["start"], lcb_ur.iloc[0]["end"], lcb_ur.iloc[0]["sense"]))
+
+  
+def UR_block_name(row):
+    if row["sense"] == "+":
+        return row["LCB_UP"][0].replace("Name=Block_","")
+    else:
+        return row["LCB_DOWN"][0].replace("Name=Block_","")
+
+      
+def DR_block_name(row):
+    if row["sense"] == "+":
+        return row["LCB_DOWN"][0].replace("Name=Block_","")
+    else:
+        return row["LCB_UP"][0].replace("Name=Block_","")
+
+      
+def check_if_overlap(tuple1,tuple2):
+    x = range(tuple1[0],tuple1[1])
+    y = range(tuple2[0],tuple2[1])
+    if len(range(max(x[0], y[0]), min(x[-1], y[-1])+1)) > 0:
+        return True
+    else:
+        return False
+
+      
+def tdnas_neigh_finder(row, dct_len, tmrnadf):
+    len_seq = dct_len[row.strain]
+    if row.sense == "+":
+        range_neigh = (row.start-1000, row.start-1)
+    else:
+        range_neigh = (row.end+1, row.end+1000)
+    strain_tmrnas = tmrnadf[tmrnadf['strain'] == row.strain]
+    strain_tmrnas = strain_tmrnas.sort_values(by=["start"])
+    tmrnas_tuples = [(start, end) for start,end in zip(strain_tmrnas['start'], strain_tmrnas['end'])]
+    tmrnas_neigh = [tmdna for tmdna in tmrnas_tuples if check_if_overlap(tmdna, range_neigh)]
+    anticodon = []
+    for tmrna in tmrnas_neigh:
+        row = tmrnadf.loc[tmrnadf["start"] == tmrna[0]]
+        anticodon.append(row.iloc[0]["ANT"])
+    return "-".join(anticodon)
+
+  
+def check_UR_sense(row):
+    if row.sense == "+":
+        LCB_UR = row.LCB_UP
+    else:
+        LCB_UR = row.LCB_DOWN
+    if LCB_UR[3] == row.sense:
+        return LCB_UR[0]+"_YES"
+    else:
+        return LCB_UR[0]+"_NO"
+
+
+def create_dict_ctxs(df):
+    dict_ctx = {}
+    for group_name, df_group in df.groupby("ANT"):
+        if len(df_group) > 1:
+            df_clust = df_group[["UR_name", "tdnas_neigh", "coin_sense"]]
+            df_clust_binary = pd.get_dummies(df_clust)
+            jaccard = scipy.spatial.distance.cdist(df_clust_binary, df_clust_binary, metric='jaccard')
+            rows_distance = pd.DataFrame(jaccard, columns=df_clust_binary.index.values,
+                                         index=df_clust_binary.index.values)
+            # Instantiate the DBSCAN object with the desired hyperparameters
+            dbscan = DBSCAN(eps=0.4, min_samples=2, metric='precomputed')
+            # Perform DBSCAN clustering on the distance matrix
+            labels = dbscan.fit_predict(rows_distance)
+        else:
+            labels = [0]
+
+        # assigns new clusters for ourliers
+        for i in range(len(labels)):
+            if labels[i] < 0:
+                labels[i] = max(labels) + abs(labels[i])
+
+        # alphabet list
+        alphabet_list = list(string.ascii_uppercase)
+        double_letter_list = [letter1 + letter2 for letter1 in alphabet_list for letter2 in alphabet_list]
+        alphabet = alphabet_list + double_letter_list
+
+        # create a list of clusters and sort based in frequency (most common first)
+        clusters = list(dict.fromkeys([item for items, c in Counter(labels).most_common() for item in [items] * c]))
+
+        code_dict = {}
+        for index, value in enumerate(clusters):
+            code_dict[value] = alphabet[index]
+
+        letter_dict = {}
+        x = 0
+        for index, row in df_group.iterrows():
+            letter_dict[row.name] = code_dict[labels[x]]
+            x = x + 1
+
+        dict_ctx.update(letter_dict)
+    return dict_ctx
+
+  
+def apply_nom(row, dict_ctx, nom_ext):
+    tdna_name = f"{nom_ext}_{row.ANT}{str(dict_ctx[row.name])}"
+    return tdna_name
+
+  
+def modify_duplicate(df):
+    # Group the DataFrame by "City" and apply a cumulative count
+    counts = df.groupby(["strain", "tdna_name"]).cumcount() + 1
+    # Create a boolean mask to only modify duplicated values
+    mask = df.duplicated(subset=["strain", "tdna_name"], keep=False)
+    # Concatenate the "Name" column with the counts, separated by an underscore, only for duplicated values
+    df.loc[mask, "tdna_name"] = df.loc[mask, "tdna_name"] + "_" + counts.astype(str)
+    return df
+
+  
+def create_feature(row):
+    salida_features = []
+    #Create tmDNA feature                       
+    if row["start"] < row["end"]:
+        start_pos = ExactPosition(row["start"])
+        end_pos = ExactPosition(row["end"])
+    else:
+        start_pos = ExactPosition(row["end"])
+        end_pos = ExactPosition(row["start"])
+    feature_type = "tRNA"
+    if row["sense"] == "+":
+      sense = +1
+    else:
+      sense = -1
+    feature_location = FeatureLocation(start_pos, end_pos, strand=sense)
+    id_string = f'{row["tdna_name"]}'
+    feature = SeqFeature(
+    feature_location,
+    type = feature_type,
+    id = id_string,
+    qualifiers={
+        "locus_tag" : id_string,
+        }
+    )
+    salida_features.append(feature)
+    #Create UR feature
+    #(Name=Block_#1871, 3280981, 3281075, -)
+    ur_feat = row.LCB_UP
+    if ur_feat[1] < ur_feat[2]:
+        start_pos = ExactPosition(ur_feat[1])
+        end_pos = ExactPosition(ur_feat[2])
+    else:
+        start_pos = ExactPosition(ur_feat[2])
+        end_pos = ExactPosition(ur_feat[1])
+    feature_type = "UR_BLOCK"
+    if ur_feat[3] == "+":
+      sense = +1
+    else:
+      sense = -1
+    feature2_location = FeatureLocation(start_pos, end_pos, strand=sense)
+    id_string = f'{ur_feat[0]}'
+    feature2 = SeqFeature(
+    feature2_location,
+    type = feature_type,
+    id = id_string,
+    qualifiers={
+        "locus_tag" : ur_feat[0] + "_" + row.tdna_name,
+        }
+    )
+    salida_features.append(feature2)
+    #Create DR feature
+    dr_feat = row.LCB_DOWN
+    if dr_feat[1] < dr_feat[2]:
+        start_pos = ExactPosition(dr_feat[1])
+        end_pos = ExactPosition(dr_feat[2])
+    else:
+        start_pos = ExactPosition(dr_feat[2])
+        end_pos = ExactPosition(dr_feat[1])
+    feature_type = "DR_BLOCK"
+    if dr_feat[3] == "+":
+      sense = +1
+    else:
+      sense = -1
+    feature3_location = FeatureLocation(start_pos, end_pos, strand=sense)
+    id_string = f'{dr_feat[0]}'
+    feature3 = SeqFeature(
+    feature3_location,
+    type = feature_type,
+    id = id_string,
+    qualifiers={
+        "locus_tag" : dr_feat[0] + "_" + row.tdna_name,
+        }
+    )
+    salida_features.append(feature3)
+    return salida_features
+
+  
+def create_genbanks(list_files, tmrnadf, file_ext):
+    for fasta in tqdm(list_files):
+        with open(fasta,"r") as fasta_in:
+            for record in SeqIO.parse(fasta_in,"fasta"):
+                new_features = []
+                for index, row in tmrnadf.loc[tmrnadf['strain'] == ntpath.basename(fasta).replace(f".fasta", "")].iterrows():
+                    new_features.append(create_feature(row))
+                for i in new_features:
+                    for j in i:
+                        record.features.append(j)
+                record.annotations["molecule_type"] = "DNA"
+                record.annotations["form"] = "double stranded"
+                record.annotations["topology"] = "circular"
+                with open(fasta.replace(f".{file_ext}","_KintunClust.gb"),"w") as salida:
+                    SeqIO.write(record,salida,"gb")
+
+                    
+def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads):
+    # Create list of files .aragorn
+    # list_files = glob.glob(f'{output_folder}/*/*.tmdnas', recursive=True)
+    list_files_trnas = glob.glob(f'{output_folder}/*/*.tmdnas', recursive=True)
+    list_files_fasta = glob.glob(f'{output_folder}/*/*.fasta', recursive=True)
+    # Create tmdnas dataframe
+    tmrnadf = create_tmdnas_df(list_files_trnas)
+    # Run SibeliaZ with all genomes
+    run_sibeliaz(list_files_fasta, output_folder, threads)
+    # Create dataframe with LCBs
+    lcbdf = create_lcbs_df(f"{output_folder}/all_chr_sibelia/50/blocks_coords.txt", list_files_fasta)
+    lcbdf = delete_non_core(lcbdf)
+    # Create chr length dict
+    dct_len = seqlen_dct(list_files_fasta, file_ext)
+    # Create DR and UR info columns
+    tqdm.pandas(desc="Processing <--(t(m)DNA)")
+    tmrnadf["LCB_UP"] = tmrnadf.progress_apply(lambda row: up_lcb_finder(row, dct_len, lcbdf), axis=1)
+    tqdm.pandas(desc="Processing (t(m)DNA)-->")
+    tmrnadf["LCB_DOWN"] = tmrnadf.progress_apply(lambda row: down_lcb_finder(row, dct_len, lcbdf), axis=1)
+    # Correct UR and DR names by sense
+    tqdm.pandas(desc="Processing...")
+    tmrnadf["UR_name"] = tmrnadf.progress_apply(lambda row: UR_block_name(row), axis=1)
+    tmrnadf["DR_name"] = tmrnadf.progress_apply(lambda row: DR_block_name(row), axis=1)
+    tmrnadf["ANT"] = tmrnadf.progress_apply(lambda row: apply_ant_dict(row["ID"]), axis=1)
+    tmrnadf["tdnas_neigh"] = tmrnadf.progress_apply(lambda row: tdnas_neigh_finder(row, dct_len, tmrnadf), axis=1)
+    tmrnadf["coin_sense"] = tmrnadf.progress_apply(lambda row: check_UR_sense(row), axis=1)
+    dict_ctx = create_dict_ctxs(tmrnadf)
+    tmrnadf["tdna_name"] = tmrnadf.apply(lambda row: apply_nom(row, dict_ctx, nom_ext), axis=1)
+    tmrnadf = modify_duplicate(tmrnadf)
+    tmrnadf[["strain", "start", "end", "sense", "LCB_UP", "LCB_DOWN", "tdna_name"]].to_csv(
+        f"{output_folder}/tdna_scheme_{nom_ext}.csv")
+    create_genbanks(list_files_fasta, tmrnadf, file_ext)
+    shutil.rmtree(f"{output_folder}/tmp/")
+    
