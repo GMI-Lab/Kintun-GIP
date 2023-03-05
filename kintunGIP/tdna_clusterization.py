@@ -129,9 +129,9 @@ def create_tmdnas_df(list_files):
 
   
 def delete_non_core(lcbdf):
-    groups = lcbdf.groupby("ID")
+    groups = lcbdf.groupby("ID", group_keys=False)
     filtered_groups = groups.filter(lambda x: len(x) >= lcbdf['strain'].nunique())
-    new_df = filtered_groups.groupby("ID").apply(lambda x: pd.concat([x]))
+    new_df = filtered_groups.groupby("ID", group_keys=False).apply(lambda x: pd.concat([x]))
     new_df.rename(columns = {'ID':'IDs'}, inplace = True)
     return new_df
 
