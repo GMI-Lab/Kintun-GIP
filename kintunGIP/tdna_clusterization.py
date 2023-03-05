@@ -446,5 +446,5 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads)
     tmrnadf[["strain", "start", "end", "sense", "LCB_UP", "LCB_DOWN", "tdna_name"]].to_csv(
         f"{output_folder}/tdna_scheme_{nom_ext}.csv")
     create_genbanks(list_files_fasta, tmrnadf, file_ext)
-    shutil.rmtree(f"{output_folder}/tmp/")
+    shutil.rmtree(f"{output_folder}/all_chr_sibelia/")
     
