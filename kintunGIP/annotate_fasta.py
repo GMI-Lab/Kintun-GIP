@@ -36,7 +36,9 @@ def annotate_genome(list_fasta, dir_out, file_ext, threads):
             sys.exit("""Checking %s: ERROR: %s not found"""
                      % (software, software))
     # Run softwares
-    for in_file in tqdm(list_fasta):
+    pbar = tqdm(list_fasta)
+    for in_file in pbar:
+        pbar.set_description("Processing %s" % in_file)
         prefix = ntpath.basename(in_file).replace(f".{file_ext}", "")
         outdir = os.path.join(dir_out, ntpath.basename(in_file).replace(f".{file_ext}", "")+"_annot/")
         new_fasta = f"{outdir}/{prefix}.fasta"
