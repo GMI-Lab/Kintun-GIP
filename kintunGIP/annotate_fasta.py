@@ -46,6 +46,7 @@ def annotate_genome(list_fasta, dir_out, file_ext, threads):
         #Create new fasta, avoids input format problems with tRNAscan-SE
         with open(in_file,"r") as ori_fasta:
             for record in SeqIO.parse(ori_fasta,"fasta"):
+                record.id = prefix
                 with open(new_fasta,"w") as fasta_process:
                     SeqIO.write(record,fasta_process,"fasta")
         logging.info("Processing %s file %s/%s" % (ntpath.basename(in_file),
