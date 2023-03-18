@@ -137,7 +137,7 @@ def delete_non_core(lcbdf):
 
   
 def run_sibeliaz(list_files, output_folder, threads):
-    cmd_sibeliaz = f"sibeliaz -k 11 -n -t {threads} -o {output_folder}/all_chr_sibelia/ {' '.join(list_files)} ; maf2synteny -b 50 -o {output_folder}/all_chr_sibelia/ {output_folder}/all_chr_sibelia/blocks_coords.gff"
+    cmd_sibeliaz = f"sibeliaz -k 11 -a {15*2*len(list_files)} -n -t {threads} -o {output_folder}/all_chr_sibelia/ {' '.join(list_files)} ; maf2synteny -b 50 -o {output_folder}/all_chr_sibelia/ {output_folder}/all_chr_sibelia/blocks_coords.gff"
     p = subprocess.run(cmd_sibeliaz, shell=True)
 
     
