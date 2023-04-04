@@ -178,9 +178,14 @@ def up_lcb_finder(row, dct_len, lcbdf):
     lcb_tuples =     [(start, end) for start,end in zip(strain_lcb['start'], strain_lcb['end'])]
     lcb_tuples.append((lcb_tuples[-1][0]-len_seq,lcb_tuples[-1][1]-len_seq))
     lcb_tuples.append((lcb_tuples[0][0]+len_seq,lcb_tuples[0][1]+len_seq))
-    non_overlap = [lcb for lcb in lcb_tuples if not check_if_overlap(lcb, (row.start,row.end))]
+    lcb_overlap = [lcb for lcb in lcb_tuples if check_if_overlap(lcb, (row.start,row.end))]
     nearest_ur = find_nearest_range(row.start, [ranges for ranges in non_overlap if ranges[0] < row.start])
-    prev_start = nearest_ur[0]
+    # check if a LCB overlap or not
+    if len(lcb_overlap) != 0:
+        prev_start = lcb_overlap[0]
+    else:
+        prev_start = nearest_ur[0]
+    # corrects coordinates
     if prev_start < 0:
         lcb_start = lcb_tuples_ori[-1][0]
     elif prev_start > len_seq:
@@ -199,9 +204,14 @@ def down_lcb_finder(row, dct_len, lcbdf):
     lcb_tuples = [(start, end) for start,end in zip(strain_lcb['start'], strain_lcb['end'])]
     lcb_tuples.append((lcb_tuples[-1][0]-len_seq,lcb_tuples[-1][1]-len_seq))
     lcb_tuples.append((lcb_tuples[0][0]+len_seq,lcb_tuples[0][1]+len_seq))
-    non_overlap = [lcb for lcb in lcb_tuples if not check_if_overlap(lcb, (row.start,row.end))]
-    nearest_ur = find_nearest_range(row.start, [ranges for ranges in non_overlap if ranges[0] > row.end])
-    prev_start = nearest_ur[0]
+    lcb_overlap = [lcb for lcb in lcb_tuples if check_if_overlap(lcb, (row.start,row.end))]
+    nearest_ur = find_nearest_range(row.start, [ranges for ranges in non_overlap if ranges[0] < row.start])
+    # check if a LCB overlap or not
+    if len(lcb_overlap) != 0:
+        prev_start = lcb_overlap[0]
+    else:
+        prev_start = nearest_ur[0]
+    # corrects coordinates
     if prev_start < 0:
         lcb_start = lcb_tuples_ori[-1][0]
     elif prev_start > len_seq:
@@ -416,8 +426,7 @@ def create_genbanks(list_files, tmrnadf, file_ext):
 
                     
 def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads):
-    # Create list of files .aragorn
-    # list_files = glob.glob(f'{output_folder}/*/*.tmdnas', recursive=True)
+    # Create list of files
     list_files_trnas = glob.glob(f'{output_folder}/*/*.tmdnas', recursive=True)
     list_files_fasta = glob.glob(f'{output_folder}/*/*.fasta', recursive=True)
     # Create tmdnas dataframe
