@@ -103,7 +103,7 @@ def create_lcbs_df(blocks_file, list_files):
         # Extract information
         seqs = [i.strip().split("\n") for i in fields if not "Block #" in i][0][1:]
         groups = [ i.strip().split("\n") for i in fields if "Block #" in i]
-        conserved_lcb = [i for i in groups if check_core(len(seqs),i)]
+        conserved_lcb = [i for i in groups]
         # Obtain coords
     dct_codes = {}
     for i in seqs:
@@ -130,14 +130,14 @@ def create_tmdnas_df(list_files):
   
 def delete_non_core(lcbdf):
     groups = lcbdf.groupby("ID", group_keys=False)
-    filtered_groups = groups.filter(lambda x: len(x) >= lcbdf['strain'].nunique())
+    filtered_groups = groups.filter(lambda x: len(x) >= 0.8 * lcbdf['strain'].nunique())
     new_df = filtered_groups.groupby("ID", group_keys=False).apply(lambda x: pd.concat([x]))
     new_df.rename(columns = {'ID':'IDs'}, inplace = True)
     return new_df
 
   
 def run_sibeliaz(list_files, output_folder, threads):
-    cmd_sibeliaz = f"sibeliaz -k 11 -a {15*2*len(list_files)} -n -t {threads} -o {output_folder}/all_chr_sibelia/ {' '.join(list_files)} ; maf2synteny -b 50 -o {output_folder}/all_chr_sibelia/ {output_folder}/all_chr_sibelia/blocks_coords.gff"
+    cmd_sibeliaz = f"sibeliaz -k 11 -n -t {threads} -o {output_folder}/all_chr_sibelia/ {' '.join(list_files)} ; maf2synteny -b 50 -o {output_folder}/all_chr_sibelia/ {output_folder}/all_chr_sibelia/blocks_coords.gff"
     p = subprocess.run(cmd_sibeliaz, shell=True)
 
     
@@ -178,11 +178,12 @@ def up_lcb_finder(row, dct_len, lcbdf):
     lcb_tuples =     [(start, end) for start,end in zip(strain_lcb['start'], strain_lcb['end'])]
     lcb_tuples.append((lcb_tuples[-1][0]-len_seq,lcb_tuples[-1][1]-len_seq))
     lcb_tuples.append((lcb_tuples[0][0]+len_seq,lcb_tuples[0][1]+len_seq))
-    lcb_overlap = [lcb for lcb in lcb_tuples if check_if_overlap(lcb, (row.start,row.end))]
+    non_overlap = [lcb for lcb in lcb_tuples if not check_if_overlap(lcb, (row.start,row.end))]
+    lcb_overlap = [lcb for lcb in lcb_tuples if overlap_at_start(lcb, (row.start,row.end))]
     nearest_ur = find_nearest_range(row.start, [ranges for ranges in non_overlap if ranges[0] < row.start])
     # check if a LCB overlap or not
     if len(lcb_overlap) != 0:
-        prev_start = lcb_overlap[0]
+        prev_start = lcb_overlap[0][0]
     else:
         prev_start = nearest_ur[0]
     # corrects coordinates
@@ -193,6 +194,7 @@ def up_lcb_finder(row, dct_len, lcbdf):
     else:
         lcb_start = prev_start
     lcb_ur = strain_lcb.loc[strain_lcb["start"] == lcb_start]
+    print(f"this is the lcb_ur: {lcb_ur}")
     return((lcb_ur.iloc[0]["IDs"], lcb_ur.iloc[0]["start"], lcb_ur.iloc[0]["end"], lcb_ur.iloc[0]["sense"]))
 
   
@@ -204,11 +206,12 @@ def down_lcb_finder(row, dct_len, lcbdf):
     lcb_tuples = [(start, end) for start,end in zip(strain_lcb['start'], strain_lcb['end'])]
     lcb_tuples.append((lcb_tuples[-1][0]-len_seq,lcb_tuples[-1][1]-len_seq))
     lcb_tuples.append((lcb_tuples[0][0]+len_seq,lcb_tuples[0][1]+len_seq))
-    lcb_overlap = [lcb for lcb in lcb_tuples if check_if_overlap(lcb, (row.start,row.end))]
-    nearest_ur = find_nearest_range(row.start, [ranges for ranges in non_overlap if ranges[0] < row.start])
+    non_overlap = [lcb for lcb in lcb_tuples if not check_if_overlap(lcb, (row.start,row.end))]
+    lcb_overlap = [lcb for lcb in lcb_tuples if overlap_at_end(lcb, (row.start,row.end))]
+    nearest_ur = find_nearest_range(row.start, [ranges for ranges in non_overlap if ranges[0] > row.end])
     # check if a LCB overlap or not
     if len(lcb_overlap) != 0:
-        prev_start = lcb_overlap[0]
+        prev_start = lcb_overlap[0][0]
     else:
         prev_start = nearest_ur[0]
     # corrects coordinates
@@ -219,6 +222,7 @@ def down_lcb_finder(row, dct_len, lcbdf):
     else:
         lcb_start = prev_start
     lcb_ur = strain_lcb.loc[strain_lcb["start"] == lcb_start]
+    print(f"this is the lcb_ur: {lcb_ur}")
     return((lcb_ur.iloc[0]["IDs"], lcb_ur.iloc[0]["start"], lcb_ur.iloc[0]["end"], lcb_ur.iloc[0]["sense"]))
 
   
@@ -277,7 +281,7 @@ def create_dict_ctxs(df):
     dict_ctx = {}
     for group_name, df_group in df.groupby("ANT"):
         if len(df_group) > 1:
-            df_clust = df_group[["UR_name", "tdnas_neigh", "coin_sense"]]
+            df_clust = df_group[["UR_name", "tdnas_neigh"]]
             df_clust_binary = pd.get_dummies(df_clust)
             jaccard = scipy.spatial.distance.cdist(df_clust_binary, df_clust_binary, metric='jaccard')
             rows_distance = pd.DataFrame(jaccard, columns=df_clust_binary.index.values,
@@ -365,7 +369,7 @@ def create_feature(row):
     else:
         start_pos = ExactPosition(ur_feat[2])
         end_pos = ExactPosition(ur_feat[1])
-    feature_type = "UR_BLOCK"
+    feature_type = "misc_feature"
     if ur_feat[3] == "+":
       sense = +1
     else:
@@ -389,7 +393,7 @@ def create_feature(row):
     else:
         start_pos = ExactPosition(dr_feat[2])
         end_pos = ExactPosition(dr_feat[1])
-    feature_type = "DR_BLOCK"
+    feature_type = "misc_feature"
     if dr_feat[3] == "+":
       sense = +1
     else:
@@ -455,6 +459,7 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads)
     tmrnadf = modify_duplicate(tmrnadf)
     tmrnadf[["strain", "start", "end", "sense", "LCB_UP", "LCB_DOWN", "tdna_name"]].to_csv(
         f"{output_folder}/tdna_scheme_{nom_ext}.csv")
+    lcbdf.to_csv(f"{output_folder}/LCBs_{nom_ext}.csv")
     create_genbanks(list_files_fasta, tmrnadf, file_ext)
     shutil.rmtree(f"{output_folder}/all_chr_sibelia/")
     
