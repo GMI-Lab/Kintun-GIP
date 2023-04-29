@@ -42,6 +42,7 @@ dct_ant = dict(GLYACC='gly4', HISATG='his2', CYSACA='cys2', ARGACG='arg1', ASPAT
                SERGCT='ser4', SERACT='ser5', SUPCTA='Sup1', SUPTTA='Sup2', SUPTCA='Sup3',
                ILE2CAT='ile3', FMETCAT='fmet1', ssrA='ssrA')
 
+
 # Functions
 def apply_ant_dict(ID_info):
     tmdna_id = ""
@@ -60,6 +61,7 @@ def accession_dct(list_files):
       for record in SeqIO.parse(in_file, "fasta"):
         str_dct[record.id] = ntpath.basename(in_file).replace(f".fasta", "")
   return str_dct
+
 
 def check_core(no_strains, lcb_group):
   codes = [int(i.split("\t")[0]) for i in lcb_group[2:]]
@@ -137,24 +139,24 @@ def delete_non_core(lcbdf):
 
   
 def run_sibeliaz(list_files, output_folder, threads):
-    cmd_sibeliaz = f"sibeliaz -k 11 -n -t {threads} -o {output_folder}/all_chr_sibelia/ {' '.join(list_files)} ; maf2synteny -b 50 -o {output_folder}/all_chr_sibelia/ {output_folder}/all_chr_sibelia/blocks_coords.gff"
+    cmd_sibeliaz = f"sibeliaz -k 11 -n -t {threads} -o {output_folder}/all_chr_sibelia/ {' '.join(list_files)} ; maf2synteny -b 300 -o {output_folder}/all_chr_sibelia/ {output_folder}/all_chr_sibelia/blocks_coords.gff"
     p = subprocess.run(cmd_sibeliaz, shell=True)
 
     
 def seqlen_dct(list_files, file_ext):
-  str_dct = {}
-  for in_file in list_files:
-    with open(in_file,"r") as strain_file:
-      for record in SeqIO.parse(in_file, "fasta"):
-        str_dct[ntpath.basename(in_file).replace(f".{file_ext}", "")] = len(record.seq)
-  return str_dct
+    str_dct = {}
+    for in_file in list_files:
+      with open(in_file,"r") as strain_file:
+        for record in SeqIO.parse(in_file, "fasta"):
+          str_dct[ntpath.basename(in_file).replace(f".{file_ext}", "")] = len(record.seq)
+    return str_dct
 
 
 def overlap_at_start(r1, r2):
     """Check if two ranges overlap at the start."""
     return r1[0] == r2[0] or (r1[0] < r2[0] and r1[1] > r2[0])
 
-  
+
 def overlap_at_end(r1, r2):
     """Check if two ranges overlap at the end."""
     return r1[1] == r2[1] or (r1[0] < r2[1] and r1[1] > r2[1])
@@ -194,7 +196,6 @@ def up_lcb_finder(row, dct_len, lcbdf):
     else:
         lcb_start = prev_start
     lcb_ur = strain_lcb.loc[strain_lcb["start"] == lcb_start]
-    print(f"this is the lcb_ur: {lcb_ur}")
     return((lcb_ur.iloc[0]["IDs"], lcb_ur.iloc[0]["start"], lcb_ur.iloc[0]["end"], lcb_ur.iloc[0]["sense"]))
 
   
@@ -222,7 +223,6 @@ def down_lcb_finder(row, dct_len, lcbdf):
     else:
         lcb_start = prev_start
     lcb_ur = strain_lcb.loc[strain_lcb["start"] == lcb_start]
-    print(f"this is the lcb_ur: {lcb_ur}")
     return((lcb_ur.iloc[0]["IDs"], lcb_ur.iloc[0]["start"], lcb_ur.iloc[0]["end"], lcb_ur.iloc[0]["sense"]))
 
   
@@ -438,8 +438,10 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads)
     # Run SibeliaZ with all genomes
     run_sibeliaz(list_files_fasta, output_folder, threads)
     # Create dataframe with LCBs
-    lcbdf = create_lcbs_df(f"{output_folder}/all_chr_sibelia/50/blocks_coords.txt", list_files_fasta)
+    lcbdf = create_lcbs_df(f"{output_folder}/all_chr_sibelia/300/blocks_coords.txt", list_files_fasta)
     lcbdf = delete_non_core(lcbdf)
+    print(list(lcbdf.columns))
+    lcbdf['f_IDs'] = lcbdf.groupby('IDs')['IDs'].transform('count')
     # Create chr length dict
     dct_len = seqlen_dct(list_files_fasta, file_ext)
     # Create DR and UR info columns
@@ -457,7 +459,7 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads)
     dict_ctx = create_dict_ctxs(tmrnadf)
     tmrnadf["tdna_name"] = tmrnadf.apply(lambda row: apply_nom(row, dict_ctx, nom_ext), axis=1)
     tmrnadf = modify_duplicate(tmrnadf)
-    tmrnadf[["strain", "start", "end", "sense", "LCB_UP", "LCB_DOWN", "tdna_name"]].to_csv(
+    tmrnadf[["strain", "start", "end", "sense", "UR_name", "DR_name", "tdna_name"]].to_csv(
         f"{output_folder}/tdna_scheme_{nom_ext}.csv")
     lcbdf.to_csv(f"{output_folder}/LCBs_{nom_ext}.csv")
     create_genbanks(list_files_fasta, tmrnadf, file_ext)
