@@ -139,7 +139,7 @@ def delete_non_core(lcbdf):
 
   
 def run_sibeliaz(list_files, output_folder, threads):
-    cmd_sibeliaz = f"sibeliaz -k 11 -n -t {threads} -o {output_folder}/all_chr_sibelia/ {' '.join(list_files)} ; maf2synteny -b 300 -o {output_folder}/all_chr_sibelia/ {output_folder}/all_chr_sibelia/blocks_coords.gff"
+    cmd_sibeliaz = f"sibeliaz -k 11 -n -t {threads} -o {output_folder}/all_chr_sibelia/ {' '.join(list_files)} ; maf2synteny -b 1000 -o {output_folder}/all_chr_sibelia/ {output_folder}/all_chr_sibelia/blocks_coords.gff"
     p = subprocess.run(cmd_sibeliaz, shell=True)
 
     
@@ -438,7 +438,7 @@ def tdna_clusterization(input_folder, output_folder, file_ext, nom_ext, threads)
     # Run SibeliaZ with all genomes
     run_sibeliaz(list_files_fasta, output_folder, threads)
     # Create dataframe with LCBs
-    lcbdf = create_lcbs_df(f"{output_folder}/all_chr_sibelia/300/blocks_coords.txt", list_files_fasta)
+    lcbdf = create_lcbs_df(f"{output_folder}/all_chr_sibelia/1000/blocks_coords.txt", list_files_fasta)
     lcbdf = delete_non_core(lcbdf)
     print(list(lcbdf.columns))
     lcbdf['f_IDs'] = lcbdf.groupby('IDs')['IDs'].transform('count')
