@@ -1,0 +1,6 @@
+setuptools~=57.0.0
+tqdm~=4.66.1
+pandas~=2.1.0
+numpy~=1.25.2
+scipy~=1.11.2
+sklearn~=0.0.post9

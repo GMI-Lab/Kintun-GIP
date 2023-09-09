@@ -1,14 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+import glob
 import sys
 import os
 import argparse
 import logging
 import time
+import shutil
 from kintunGIP import check_fasta
 from kintunGIP import annotate_fasta
 from kintunGIP import tdna_clusterization
+from kintunGIP import prediction
 
 class Kintun:
     def __init__(self):
@@ -52,9 +54,21 @@ class Kintun:
         parser.add_argument("-v", action="version",
                             version='Kintun-GIP t(m)DNAs clusterization module v0.9.0')
         args = parser.parse_args(sys.argv[2:])
+
+
         if os.path.exists(args.results_dir):
-            sys.exit("Output directory already exists!")
-        os.makedirs(args.results_dir)
+            user_input = input("Output directory already exists. Do you want to overwrite it? (y/n): ").strip().lower()
+            if user_input == "y":
+                # If the user agrees to overwrite, remove the existing directory
+                #shutil.rmtree(args.results_dir)
+                print("Using older directory")
+            elif user_input == "n":
+                sys.exit("Aborted. Output directory not overwritten.")
+            else:
+                sys.exit("Invalid input. Please enter 'y' or 'n'.")
+        else:
+            # Create the directory if it doesn't exist or after removal
+            os.makedirs(args.results_dir)
 
         if args.log_file == '':
             log_file = time.strftime("kintun-vli_%Y%m%d-%H%M.log")
@@ -95,13 +109,36 @@ class Kintun:
         logging.info("---------------")
         logging.info("All your genomes are now annotated, yay! :D")
         logging.info("Finally it's time for tDNAs clusterization")
-        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir, 
-                                                args.file_extension, args.prefix, args.threads)
-        #logging.info("---------------")
-        #logging.info("It seems clusterization is over, you can find tDNAS annotated in the final genbank files")
-        #logging.info("Have a good day!")
-        #logging.info("---------------")
+        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir, args.threads, args.prefix)
+        logging.info("---------------")
+        logging.info("It seems clusterization is over, you can find tDNAS information in the .CSV file")
+        logging.info("For genomic islands prediction, run KintunGIP predict"
+                     "Have a good day!")
+        logging.info("---------------")
 
+    @staticmethod
+    def predict():
+        parser = argparse.ArgumentParser()
+        parser.add_argument("-i", type=str, action="store", dest='in_directory',
+                            help="Directory with KintunGIP clust results (REQUIRED)", required=True)
+        parser.add_argument("-t", type=str, action="store", dest='threads',
+                            default='8',
+                            help="Number of threads for nucmer and SibeliaZ")
+        parser.add_argument("-log", type=str, action="store", dest='log_file',
+                            default='',
+                            help="Name of log file (Optional)")
+        parser.add_argument("-v", action="version",
+                            version='Kintun-GIP GIs prediction module v0.9.0')
+        args = parser.parse_args(sys.argv[2:])
+
+        if not os.path.exists(args.in_directory):
+            sys.exit("Error: The specified output directory does not exist.")
+        else:
+            # Create the directory if it doesn't exist or after removal
+            csv_files = glob.glob(f'{args.in_directory}/*.csv')
+            tdna_scheme_file = [i for i in csv_files if "scheme" in i][0]
+            tdna_lcbs_file = [i for i in csv_files if "LCB" in i][0]
+            prediction.predict_gis(args.in_directory, tdna_scheme_file, tdna_lcbs_file, "test", args.threads)
 
 if __name__ == '__main__':
     Kintun()
