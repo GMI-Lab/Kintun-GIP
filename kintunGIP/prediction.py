@@ -102,13 +102,12 @@ def detect_df_variations(dict_clusters, tdna_name):
 
 
 def new_dr_lcbs(tdna_df, lcbs_df):
-    print(tdna_df)
     DR_dfs_core = []
     DR_dfs_non_core = []
     DR_LCBs = list(tdna_df["DR_name"].unique())
     DR_LCBs_count = tdna_df["DR_name"].value_counts().to_dict()
     for lcb in DR_LCBs_count.keys():
-        lcb_df = lcbs_df.loc[lcbs_df["ID"] == str(lcb)]
+        lcb_df = lcbs_df.loc[lcbs_df["IDs"] == str(lcb)]
         if len(lcb_df) == len(tdna_df["strain"].unique()):
             DR_dfs_core.append(dict(zip(lcb_df.strain, lcb_df.DR_tuple)))
         else:
@@ -139,13 +138,14 @@ def extract_blocks_coords(scheme_df, lcbs_df, out_dir, numcpu):
         tdna_df = tdna_df.copy()
         if len(tdna_df) > 1:
             # Check DR names
-            print(tdna_name)
             core_dr, non_core_dr = new_dr_lcbs(tdna_df, lcbs_df)
-            print(core_dr, non_core_dr, "AHOY!")
-            if len(core_dr[0]) == len(tdna_df["strain"].unique()):
-                test_df["LCB_DOWN"] = test_df.apply(lambda row: change_dr_down(row, core_dr[0]), axis=1)
-                test_df["LCB_UP"] = test_df.apply(lambda row: change_dr_up(row, core_dr[0]), axis=1)
+            print(tdna_name, len(core_dr[0]), len(tdna_df["strain"].unique()), non_core_dr)
+            if len(core_dr) > 0 and (core_dr[0]) == len(tdna_df["strain"].unique()):
+                tdna_df["LCB_DOWN"] = tdna_df.apply(lambda row: change_dr_down(row, core_dr[0]), axis=1)
+                tdna_df["LCB_UP"] = tdna_df.apply(lambda row: change_dr_up(row, core_dr[0]), axis=1)
             else:
+                tdna_df["LCB_DOWN"] = tdna_df.apply(lambda row: change_dr_down(row, non_core_dr[0]), axis=1)
+                tdna_df["LCB_UP"] = tdna_df.apply(lambda row: change_dr_up(row, non_core_dr[0]), axis=1)
                 print("AHOY!")
 
             # Extract FASTAs
@@ -238,7 +238,7 @@ def apply_nom(row, dict_ctx):
 def predict_gis(out_dir, scheme_file, lcbs_file, prefix, numcpu):
     # Import scheme as a DataFrame
     lcbs_df = pd.read_csv(lcbs_file)
-    lcbs_df["IDs"] = lcbs_df.apply(lambda x: x["ID"].split("_")[0], axis=1)
+    lcbs_df["IDs"] = lcbs_df.apply(lambda x: str(x["ID"].split("Block_")[1]), axis=1)
     lcbs_df["DR_tuple"] = lcbs_df.apply(lambda row: (row.ID, row.start, row.end), axis=1)
 
     scheme_df = pd.read_csv(scheme_file, index_col=0)
