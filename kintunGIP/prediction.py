@@ -4,7 +4,7 @@ import ast
 import pandas as pd
 from Bio import SeqIO
 
-
+# Function to read groups from a TSV file and organize them into a dictionary
 def read_groups_tsv(tsv_file):
     tuples = []
     with open(tsv_file, "r") as table:
@@ -17,7 +17,7 @@ def read_groups_tsv(tsv_file):
         clusts_dict[k[0]].append(k[1])
     return clusts_dict
 
-
+# Function to read coordinates from a progressiveMauve results and organize them
 def read_coord_file(coordinates_file, dict_clusters):
     all_lcbs = []
     # Read the coordinates from the file
@@ -25,7 +25,7 @@ def read_coord_file(coordinates_file, dict_clusters):
         next(file)
         # Assuming each line in the file contains start and end coordinates separated by a tab or space
         for line in file:
-            tpl = line.strip().split("\t")
+            tpl = line.strip().replace("-","").split("\t")
             all_lcbs.append([(tpl[i], tpl[i + 1]) for i in range(0, len(tpl), 2)])
     # Initialize a list to store the conserved contexts
     conserved_lcbs = [i for i in all_lcbs if ("0", "0") not in i]
@@ -35,7 +35,7 @@ def read_coord_file(coordinates_file, dict_clusters):
         dict_str_blocks[value] = [pair[index] for pair in conserved_lcbs]
     return dict_str_blocks
 
-
+# Function to check for overlaps between genomic blocks and target regions
 def check_overlap(conserved_blocks, dict_clusters, tdna_name):
     ur_dict = {}
     dr_dict = {}
@@ -75,12 +75,12 @@ def check_coordinates(tdna_df):
     tdna_row_name = [row.name for index, row in tdna_df.iterrows()]
     block_corrected = {}
     for index, pair in enumerate(list(zip(block_coords, tdnas_coords))):
-        if pair[0][0] - pair[1][0] < 500:
-            ur_corrected = pair[1][0] - 500
+        if pair[0][0] - pair[1][0] < 60000:
+            ur_corrected = pair[1][0] - 60000
         else:
             ur_corrected = pair[1][0]
-        if pair[1][1] - pair[0][1] < 500:
-            dr_corrected = pair[1][1] + 500
+        if pair[1][1] - pair[0][1] < 60000:
+            dr_corrected = pair[1][1] + 60000
         else:
             dr_corrected = pair[1][1]
         block_corrected[tdna_row_name[index]] = (ur_corrected, dr_corrected)
@@ -108,7 +108,8 @@ def new_dr_lcbs(tdna_df, lcbs_df):
     DR_LCBs_count = tdna_df["DR_name"].value_counts().to_dict()
     for lcb in DR_LCBs_count.keys():
         lcb_df = lcbs_df.loc[lcbs_df["IDs"] == str(lcb)]
-        if len(lcb_df) == len(tdna_df["strain"].unique()):
+        print(len(lcb_df), len(tdna_df["strain"].unique()))
+        if len(lcb_df) >= len(tdna_df["strain"].unique()):
             DR_dfs_core.append(dict(zip(lcb_df.strain, lcb_df.DR_tuple)))
         else:
             for group_name, group_df in lcb_df.groupby("ID"):
@@ -139,14 +140,11 @@ def extract_blocks_coords(scheme_df, lcbs_df, out_dir, numcpu):
         if len(tdna_df) > 1:
             # Check DR names
             core_dr, non_core_dr = new_dr_lcbs(tdna_df, lcbs_df)
-            print(tdna_name, len(core_dr[0]), len(tdna_df["strain"].unique()), non_core_dr)
-            if len(core_dr) > 0 and (core_dr[0]) == len(tdna_df["strain"].unique()):
+            if len(core_dr) != 0 and len(core_dr[0]) >= len(tdna_df["strain"].unique()):
                 tdna_df["LCB_DOWN"] = tdna_df.apply(lambda row: change_dr_down(row, core_dr[0]), axis=1)
                 tdna_df["LCB_UP"] = tdna_df.apply(lambda row: change_dr_up(row, core_dr[0]), axis=1)
             else:
-                tdna_df["LCB_DOWN"] = tdna_df.apply(lambda row: change_dr_down(row, non_core_dr[0]), axis=1)
-                tdna_df["LCB_UP"] = tdna_df.apply(lambda row: change_dr_up(row, non_core_dr[0]), axis=1)
-                print("AHOY!")
+                print(tdna_name,"AHOY!")
 
             # Extract FASTAs
             block_coords = check_coordinates(tdna_df)
@@ -167,13 +165,12 @@ def extract_blocks_coords(scheme_df, lcbs_df, out_dir, numcpu):
             fasta_out_path = f"{tdna_name}_slices.fasta"
             with open(fasta_out_path, "w") as fasta_out:
                 fasta_out.write("\n".join(sequences) + "\n")
-
             # Run mmseqs
-            cmd1 = f"mmseqs easy-cluster {tdna_name}_slices.fasta {tdna_name}_clust tmp -c 0.99 --cov-mode 0 --threads {numcpu}"
+            cmd1 = f"mmseqs easy-linclust {tdna_name}_slices.fasta {tdna_name}_clust tmp -c 0.99 --cov-mode 0 --threads {numcpu}"
             sp1 = subprocess.run(cmd1, shell=True, stdout=subprocess.DEVNULL)
             dict_clusters = read_groups_tsv(f"{tdna_name}_clust_cluster.tsv")
             if len(dict_clusters.keys()) > 1:
-                cmd2 = f"progressiveMauve --output={tdna_name}_lcbs {tdna_name}_clust_rep_seq.fasta"
+                cmd2 = f"progressiveMauve --seed-family --output={tdna_name}_lcbs {tdna_name}_clust_rep_seq.fasta"
                 sp2 = subprocess.run(cmd2, shell=True, stdout=subprocess.DEVNULL)
                 ur_blocks, dr_blocks = check_overlap(read_coord_file(f"{tdna_name}_lcbs.backbone", dict_clusters),
                                                      dict_clusters, tdna_name)
@@ -238,7 +235,7 @@ def apply_nom(row, dict_ctx):
 def predict_gis(out_dir, scheme_file, lcbs_file, prefix, numcpu):
     # Import scheme as a DataFrame
     lcbs_df = pd.read_csv(lcbs_file)
-    lcbs_df["IDs"] = lcbs_df.apply(lambda x: str(x["ID"].split("Block_")[1]), axis=1)
+    lcbs_df["IDs"] = lcbs_df.apply(lambda x: x["ID"].split("Block_")[1], axis=1)
     lcbs_df["DR_tuple"] = lcbs_df.apply(lambda row: (row.ID, row.start, row.end), axis=1)
 
     scheme_df = pd.read_csv(scheme_file, index_col=0)
