@@ -38,3 +38,6 @@ options:
   -log LOG_FILE      Name of log file (Optional)
   -v                 show program's version number and exit
 ```
+
+## Kintun-GIP predict
+This tool will use previous t(m)RNAs annotation to predict mobile genetic elements in chromosomes.

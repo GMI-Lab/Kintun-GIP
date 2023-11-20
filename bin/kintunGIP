@@ -138,7 +138,7 @@ class Kintun:
             csv_files = glob.glob(f'{args.in_directory}/*.csv')
             tdna_scheme_file = [i for i in csv_files if "scheme" in i][0]
             tdna_lcbs_file = [i for i in csv_files if "LCB" in i][0]
-            prediction.predict_gis(args.in_directory, tdna_scheme_file, tdna_lcbs_file, "test", args.threads)
+            prediction.predict_gis(args.in_directory, tdna_scheme_file, tdna_lcbs_file, args.threads)
 
 if __name__ == '__main__':
     Kintun()
