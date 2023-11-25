@@ -150,7 +150,7 @@ def extract_blocks_coords(scheme_df, lcbs_df, out_dir, numcpu):
             else:
                 print(f"ERROR with {tdna_name}, no conserved UR or DR detected")
             # First iteration
-            window = 5000
+            window = 30000
             ur_blocks, dr_blocks = {}, {}
             while window < 500000:
                 sequences = []
