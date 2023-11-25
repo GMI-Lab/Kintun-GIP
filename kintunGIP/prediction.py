@@ -3,7 +3,8 @@ import shlex
 import ast
 import pandas as pd
 from Bio import SeqIO
-
+import glob2
+import os
 
 def read_groups_tsv(tsv_file):
     """
@@ -182,7 +183,7 @@ def extract_blocks_coords(scheme_df, lcbs_df, out_dir, numcpu):
                 with open(fasta_out_path, "w") as fasta_out:
                     fasta_out.write("\n".join(sequences) + "\n")
                 # Run mmseqs
-                cmd1 = f"mmseqs easy-linclust {tdna_name}_slices.fasta {tdna_name}_clust tmp -c 0.95 --cov-mode 0 --threads {numcpu}"
+                cmd1 = f"mmseqs easy-linclust {tdna_name}_slices.fasta {tdna_name}_clust tmp -c 0.90 --cov-mode 0 --threads {numcpu}"
                 sp1 = subprocess.run(cmd1, shell=True, stdout=subprocess.DEVNULL)
                 dict_clusters = read_groups_tsv(f"{tdna_name}_clust_cluster.tsv")
                 if len(dict_clusters.keys()) > 1:
@@ -217,6 +218,8 @@ def extract_blocks_coords(scheme_df, lcbs_df, out_dir, numcpu):
             for index, row in tdna_df.iterrows():
                 UR_ranges.update({index: (1, 1000)})
                 DR_ranges.update({index: (1, 1000)})
+        for f in glob2.glob(f"{tdna_name}_*"):
+            os.remove(f)
     return UR_ranges, DR_ranges
 
 
