@@ -5,6 +5,7 @@ import pandas as pd
 from Bio import SeqIO
 import glob2
 import os
+from tqdm import tqdm
 
 def read_groups_tsv(tsv_file):
     """
@@ -150,8 +151,9 @@ def extract_blocks_coords(scheme_df, lcbs_df, out_dir, numcpu):
             else:
                 print(f"ERROR with {tdna_name}, no conserved UR or DR detected")
             # First iteration
-            window = 30000
+            window = 20000
             ur_blocks, dr_blocks = {}, {}
+            pbar = tqdm(desc="tmDNAs surroundings refinement", total = 500000)
             while window < 500000:
                 sequences = []
                 for index, row in tdna_df.iterrows():
@@ -192,7 +194,8 @@ def extract_blocks_coords(scheme_df, lcbs_df, out_dir, numcpu):
                     ur_blocks, dr_blocks = check_overlap(read_coord_file(f"{tdna_name}_lcbs.backbone", dict_clusters),
                                                          dict_clusters, tdna_name)
                 if len(ur_blocks) != len(dict_clusters) or len(dr_blocks) != len(dict_clusters):
-                    window += 5000
+                    window += 20000
+                    pbar.update(20000)
                     continue
                 else:
                     break
