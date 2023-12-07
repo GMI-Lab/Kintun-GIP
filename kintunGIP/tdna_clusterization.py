@@ -308,7 +308,7 @@ def DR_block_name(row):
 def tdna_clusterization(input_folder, output_folder, threads, prefix):
     # Step 1: Run SibeliaZ to identify LCBs and create synteny blocks
     list_files = glob.glob(f'{output_folder}/*/*.fasta')
-    #run_sibeliaz(list_files, output_folder, threads)
+    run_sibeliaz(list_files, output_folder, threads)
 
     # Step 2: Create DataFrames for LCBs and tDNAs
     blocks_file = f'{output_folder}/all_chr_sibelia/1000/blocks_coords.txt'
