@@ -9,6 +9,10 @@ import pandas as pd
 import scipy.spatial
 from Bio import SeqIO
 from sklearn.cluster import DBSCAN
+import networkx as nx
+import matplotlib.pyplot as plt
+from sklearn.metrics import pairwise_distances
+from networkx.algorithms.community import greedy_modularity_communities
 from tqdm.auto import tqdm
 
 # Dictionary mapping anticodon codes to values
@@ -251,9 +255,14 @@ def create_dict_ctxs(df):
             rows_distance = pd.DataFrame(jaccard, columns=df_clust_binary.index.values,
                                          index=df_clust_binary.index.values)
             # Instantiate the DBSCAN object with the desired hyperparameters
-            dbscan = DBSCAN(eps=0.4, min_samples=2, metric='precomputed')
+            G = nx.Graph()
+            G.add_nodes_from(df.columns)
+            for i, row in rows_distance.iterrows():
+                for j, value in row.items():
+                    if i != j and value != 1.0:
+                        G.add_edge(i, j, weight=value)
+            labels = list(louvain_communities(G))
             # Perform DBSCAN clustering on the distance matrix
-            labels = dbscan.fit_predict(rows_distance)
         else:
             labels = [0]
 
@@ -299,7 +308,7 @@ def DR_block_name(row):
 def tdna_clusterization(input_folder, output_folder, threads, prefix):
     # Step 1: Run SibeliaZ to identify LCBs and create synteny blocks
     list_files = glob.glob(f'{output_folder}/*/*.fasta')
-    run_sibeliaz(list_files, output_folder, threads)
+    #run_sibeliaz(list_files, output_folder, threads)
 
     # Step 2: Create DataFrames for LCBs and tDNAs
     blocks_file = f'{output_folder}/all_chr_sibelia/1000/blocks_coords.txt'
