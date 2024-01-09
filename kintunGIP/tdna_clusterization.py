@@ -12,7 +12,6 @@ from sklearn.cluster import DBSCAN
 import networkx as nx
 import matplotlib.pyplot as plt
 from sklearn.metrics import pairwise_distances
-from networkx.algorithms.community import louvain_communities
 from tqdm.auto import tqdm
 
 # Dictionary mapping anticodon codes to values
@@ -261,7 +260,7 @@ def create_dict_ctxs(df):
                 for j, value in row.items():
                     if i != j and value != 1.0:
                         G.add_edge(i, j, weight=value)
-            labels = list(louvain_communities(G))
+            labels = list(nx.community.louvain_communities(G, seed=123))
             # Perform DBSCAN clustering on the distance matrix
         else:
             labels = [0]
