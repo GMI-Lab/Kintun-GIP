@@ -12,7 +12,7 @@ from sklearn.cluster import DBSCAN
 import networkx as nx
 import matplotlib.pyplot as plt
 from sklearn.metrics import pairwise_distances
-from networkx.algorithms.community import greedy_modularity_communities
+from networkx.algorithms.community import louvain_communities
 from tqdm.auto import tqdm
 
 # Dictionary mapping anticodon codes to values
@@ -306,13 +306,16 @@ def DR_block_name(row):
 
 
 def tdna_clusterization(input_folder, output_folder, threads, prefix):
-    # Step 1: Run SibeliaZ to identify LCBs and create synteny blocks
+    # Step 1: Run SibeliaZ to identify LCBs and create synteny blocks and create LCBS dataframe
     list_files = glob.glob(f'{output_folder}/*/*.fasta')
-    run_sibeliaz(list_files, output_folder, threads)
+    blocks_file = f'{output_folder}/all_chr_sibelia/1000/blocks_coords.txt'
+    if not os.path.isfile(blocks_file):
+        run_sibeliaz(list_files, output_folder, threads)
+        lcbdf = create_lcbs_df(blocks_file, list_files)
+    else:
+        lcbdf = create_lcbs_df(blocks_file, list_files)
 
     # Step 2: Create DataFrames for LCBs and tDNAs
-    blocks_file = f'{output_folder}/all_chr_sibelia/1000/blocks_coords.txt'
-    lcbdf = create_lcbs_df(blocks_file, list_files)
 
     tdnas_files = glob.glob(f'{output_folder}/*/*.tmdnas')
     tdnadf = create_tmdnas_df(tdnas_files)
