@@ -256,7 +256,7 @@ def create_dict_ctxs(df):
                                          index=df_clust_binary.index.values)
             # Instantiate the DBSCAN object with the desired hyperparameters
             G = nx.Graph()
-            G.add_nodes_from(df.columns)
+            G.add_nodes_from(df_clust.columns)
             for i, row in rows_distance.iterrows():
                 for j, value in row.items():
                     if i != j and value != 1.0:
@@ -267,9 +267,9 @@ def create_dict_ctxs(df):
             labels = [0]
 
         # assigns new clusters for ourliers
-        for i in range(len(labels)):
-            if labels[i] < 0:
-                labels[i] = max(labels) + abs(labels[i])
+        #for i in range(len(labels)):
+        #    if labels[i] < 0:
+        #        labels[i] = max(labels) + abs(labels[i])
 
         # alphabet list
         alphabet_list = list(string.ascii_uppercase)
