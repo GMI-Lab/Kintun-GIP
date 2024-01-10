@@ -10,6 +10,7 @@ import scipy.spatial
 from Bio import SeqIO
 from sklearn.cluster import DBSCAN
 import networkx as nx
+from networkx.algorithms.community import louvain_communities
 import matplotlib.pyplot as plt
 from sklearn.metrics import pairwise_distances
 from tqdm.auto import tqdm
@@ -260,7 +261,7 @@ def create_dict_ctxs(df):
                 for j, value in row.items():
                     if i != j and value != 1.0:
                         G.add_edge(i, j, weight=value)
-            labels = list(nx.community.louvain_communities(G, seed=123))
+            labels = list(louvain_communities(G))
             # Perform DBSCAN clustering on the distance matrix
         else:
             labels = [0]
@@ -290,7 +291,6 @@ def create_dict_ctxs(df):
 
         dict_ctx.update(letter_dict)
     return dict_ctx
-
 
 def apply_nom(row, dict_ctx, nom_ext):
     tdna_name = f"{nom_ext}_{row.ANT}{str(dict_ctx[row.name])}"
