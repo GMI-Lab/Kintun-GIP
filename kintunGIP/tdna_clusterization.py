@@ -10,7 +10,7 @@ import scipy.spatial
 from Bio import SeqIO
 from sklearn.cluster import DBSCAN
 import networkx as nx
-from networkx.algorithms.community import louvain_communities
+from networkx.algorithms.community import greedy_modularity_communities
 import matplotlib.pyplot as plt
 from sklearn.metrics import pairwise_distances
 from tqdm.auto import tqdm
