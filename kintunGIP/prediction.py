@@ -199,6 +199,7 @@ def extract_blocks_coords(scheme_df, lcbs_df, out_dir, numcpu):
                     continue
                 else:
                     break
+            #QUE PASA SI SON MAS DE 500000
             # Check coordinates
             dict_clusters = read_groups_tsv(f"{tdna_name}_clust_cluster.tsv")
             if len(dict_clusters.keys()) > 1:
