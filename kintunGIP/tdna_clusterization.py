@@ -262,33 +262,18 @@ def create_dict_ctxs(df):
                     if i != j and value != 1.0:
                         G.add_edge(i, j, weight=value)
             labels = list(louvain_communities(G))
-            # Perform DBSCAN clustering on the distance matrix
         else:
-            labels = [0]
-
-        # assigns new clusters for ourliers
-        #for i in range(len(labels)):
-        #    if labels[i] < 0:
-        #        labels[i] = max(labels) + abs(labels[i])
+            labels = [{df_group.index.values}]
 
         # alphabet list
         alphabet_list = list(string.ascii_uppercase)
         double_letter_list = [letter1 + letter2 for letter1 in alphabet_list for letter2 in alphabet_list]
         alphabet = alphabet_list + double_letter_list
 
-        # create a list of clusters and sort based in frequency (most common first)
-        clusters = list(dict.fromkeys([item for items, c in Counter(labels).most_common() for item in [items] * c]))
-
-        code_dict = {}
-        for index, value in enumerate(clusters):
-            code_dict[value] = alphabet[index]
-
         letter_dict = {}
-        x = 0
-        for index, row in df_group.iterrows():
-            letter_dict[row.name] = code_dict[labels[x]]
-            x = x + 1
-
+        for index,values in enumerate(labels):
+            for value in values:
+                letter_dict[value] = alphabet[index]
         dict_ctx.update(letter_dict)
     return dict_ctx
 
