@@ -11,6 +11,7 @@ from kintunGIP import check_fasta
 from kintunGIP import annotate_fasta
 from kintunGIP import tdna_clusterization
 from kintunGIP import prediction
+from kintunGIP import wapi
 
 class Kintun:
     def __init__(self):
@@ -139,6 +140,31 @@ class Kintun:
             tdna_scheme_file = [i for i in csv_files if "scheme" in i][0]
             tdna_lcbs_file = [i for i in csv_files if "LCB" in i][0]
             prediction.predict_gis(args.in_directory, tdna_scheme_file, tdna_lcbs_file, args.threads)
+
+    @staticmethod
+    def wapi():
+        parser = argparse.ArgumentParser()
+        parser.add_argument("-i", type=str, action="store", dest='in_directory',
+                            help="Directory with KintunGIP clust results (REQUIRED)", required=True)
+        parser.add_argument("-t", type=str, action="store", dest='threads',
+                            default='8',
+                            help="Number of threads for nucmer and SibeliaZ")
+        parser.add_argument("-log", type=str, action="store", dest='log_file',
+                            default='',
+                            help="Name of log file (Optional)")
+        parser.add_argument("-v", action="version",
+                            version='Kintun-GIP GIs prediction module v0.9.0')
+        parser.add_argument("-p", type=str, action="store", dest='prefix',
+                            default='NNN', required=True,
+                            help="Prefix for the t(m)DNA clustering scheme (REQUIRED)")
+        args = parser.parse_args(sys.argv[2:])
+
+        if not os.path.exists(args.in_directory):
+            sys.exit("Error: The specified output directory does not exist.")
+        else:
+            # Create the directory if it doesn't exist or after removal
+            wapi.pilrs_annotation(args.in_directory, args.threads, args.prefix)
+
 
 if __name__ == '__main__':
     Kintun()

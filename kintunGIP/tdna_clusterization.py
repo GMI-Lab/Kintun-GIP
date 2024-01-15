@@ -10,7 +10,7 @@ import scipy.spatial
 from Bio import SeqIO
 from sklearn.cluster import DBSCAN
 import networkx as nx
-from networkx.algorithms.community import greedy_modularity_communities
+from networkx.algorithms.community import louvain_communities
 import matplotlib.pyplot as plt
 from sklearn.metrics import pairwise_distances
 from tqdm.auto import tqdm
@@ -249,78 +249,33 @@ def create_dict_ctxs(df):
     dict_ctx = {}
     for group_name, df_group in df.groupby("ANT"):
         if len(df_group) > 1:
-            df_clust = df_group[["UR_name", "DR_name", "tdnas_neigh"]]
+            df_clust = df_group[["UR_name", "tdnas_neigh"]]
             df_clust_binary = pd.get_dummies(df_clust)
             jaccard = scipy.spatial.distance.cdist(df_clust_binary, df_clust_binary, metric='jaccard')
             rows_distance = pd.DataFrame(jaccard, columns=df_clust_binary.index.values,
                                          index=df_clust_binary.index.values)
             # Instantiate the DBSCAN object with the desired hyperparameters
-            rows_distance = rows_distance.apply(lambda x: 1 - x)
-            rows_distance_wozeros = rows_distance.replace(0.0,1.0)
-            #if group_name == "asn1":
-            #   print(rows_distance,rows_distance_wozeros)
-            if not rows_distance.eq(1.0).all().all() and not rows_distance_wozeros.eq(1.0).all().all():
-                G = nx.Graph()
-                G.add_nodes_from(rows_distance.columns)
-                for i, row in rows_distance.iterrows():
-                    for j, value in row.items():
-                        if i != j and value != 0.0 and df.iloc[int(i), df.columns.get_loc('strain')] != df.iloc[int(j), df.columns.get_loc('strain')]:
-                            G.add_edge(i, j, weight=value)
-                res = 1.3
-                while True:
-                    communities = list(greedy_modularity_communities(G, weight='weight', resolution=res))
-                    community_mapping = {}
-                    for i, community in enumerate(communities):
-                        for node in community:
-                            community_mapping[node] = i
-
-                    strains = [df.iloc[int(j), df.columns.get_loc('strain')] for j, row in rows_distance.iterrows()]
-                    labels = [community_mapping[j] for j, row in rows_distance.iterrows()]
-                    check_df = pd.DataFrame({'strain': strains, 'value': labels})
-                    res = res + 0.3
-
-                    if not check_df.duplicated(subset=['strain', 'value'], keep=False).any():
-                        break
-
-            elif not rows_distance.eq(1.0).all().all():
-                G = nx.Graph()
-                G.add_nodes_from(rows_distance.columns)
-                for i, row in rows_distance.iterrows():
-                    for j, value in row.items():
-                        if i != j:
-                            G.add_edge(i, j, weight=value)
-                communities = list(greedy_modularity_communities(G, weight='weight', resolution=1.5))
-                community_mapping = {}
-                for i, community in enumerate(communities):
-                    for node in community:
-                        community_mapping[node] = i
-                labels = [community_mapping[j] for j,row in rows_distance.iterrows()]
-            else:
-                labels = [0 for j,row in rows_distance.iterrows()]
+            G = nx.Graph()
+            G.add_nodes_from(df_clust.columns)
+            for i, row in rows_distance.iterrows():
+                for j, value in row.items():
+                    if i != j and value != 1.0:
+                        G.add_edge(i, j, weight=value)
+            labels = list(louvain_communities(G))
         else:
-            labels = [0]
+            labels = [{df_group.index.values}]
 
         # alphabet list
         alphabet_list = list(string.ascii_uppercase)
         double_letter_list = [letter1 + letter2 for letter1 in alphabet_list for letter2 in alphabet_list]
         alphabet = alphabet_list + double_letter_list
 
-        # create a list of clusters and sort based in frequency (most common first)
-        clusters = list(dict.fromkeys([item for items, c in Counter(labels).most_common() for item in [items] * c]))
-
-        code_dict = {}
-        for index, value in enumerate(clusters):
-            code_dict[value] = alphabet[index]
-
         letter_dict = {}
-        x = 0
-        for index, row in df_group.iterrows():
-            letter_dict[row.name] = code_dict[labels[x]]
-            x = x + 1
-
+        for index,values in enumerate(labels):
+            for value in values:
+                letter_dict[value] = alphabet[index]
         dict_ctx.update(letter_dict)
     return dict_ctx
-
 
 def apply_nom(row, dict_ctx, nom_ext):
     tdna_name = f"{nom_ext}_{row.ANT}{str(dict_ctx[row.name])}"
