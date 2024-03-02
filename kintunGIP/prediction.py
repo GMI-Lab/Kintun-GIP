@@ -345,11 +345,11 @@ def pre_predict_PILR(tdnas_df, out_dir, input_dir):
                             target_end = row.bor_right[1] - row.Start
                         out_file.write(
                             f">{group_name}-{row.name}-{target_start + 1}-{target_end}\n{str(extract_sequence(f'{input_dir}/{row.File}.gbff', row.Strand, row.bor_left[0], row.bor_right[1], row.Chr_size))}\n")
-            if not os.path.isfile(f"{out_dir}/sibelia_{group_name}/1000/blocks_coords.txt"):
+            if not os.path.isfile(f"{out_dir}/sibelia_{group_name}/300/blocks_coords.txt"):
                 print(group_name, "SibeliaZ")
-                cmd2 = f"sibeliaz -k 11 -n -t 8 -o {out_dir}/sibelia_{group_name}/ {fasta_ctxs} ; maf2synteny -b 1000 -o {out_dir}/sibelia_{group_name}/ {out_dir}/sibelia_{group_name}/blocks_coords.gff"
+                cmd2 = f"sibeliaz -k 11 -n -t 8 -o {out_dir}/sibelia_{group_name}/ {fasta_ctxs} ; maf2synteny -b 300 -o {out_dir}/sibelia_{group_name}/ {out_dir}/sibelia_{group_name}/blocks_coords.gff"
                 sp2 = subprocess.run(cmd2, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            lcbs_df = create_lcbs_df(f"{out_dir}/sibelia_{group_name}/1000/blocks_coords.txt")
+            lcbs_df = create_lcbs_df(f"{out_dir}/sibelia_{group_name}/300/blocks_coords.txt")
             lcbs_df = delete_non_core(lcbs_df)
             lcbs_df["cor_coords"] = lcbs_df.apply(adjust_ranges, axis=1)
             for index, row in group_df.iterrows():
