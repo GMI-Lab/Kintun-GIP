@@ -453,7 +453,7 @@ def check_overlap_PILR(row, dict_pilrs, num):
         return row.PILRs[num]
 
 
-def pilrs_prediction(output_dir, input_dir, prefix):
+def prediction(output_dir, input_dir, prefix):
     tdnas_df = pd.read_csv(f"{output_dir}/{prefix}_tDNAs.csv", header=0, index_col=0)
     cds_df = pd.read_csv(f"{output_dir}/{prefix}_core_CDSs.csv", header=0, index_col=0)
     core_df = pd.read_csv(f"{output_dir}/{prefix}_coregenome_detail.csv", header=0, index_col=1)
