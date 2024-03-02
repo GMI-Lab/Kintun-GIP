@@ -134,7 +134,7 @@ class Kintun:
         if not os.path.exists(args.in_directory):
             sys.exit("Error: The specified output directory does not exist.")
         if not os.path.exists(args.fasta_dir):
-            sys.exit("Error: The specified directory with genbank files does not exist."
+            sys.exit("Error: The specified directory with genbank files does not exist.")
         
             prediction.predict_gis(args.fasta_dir, args.in_directory, args.prefix)
 
