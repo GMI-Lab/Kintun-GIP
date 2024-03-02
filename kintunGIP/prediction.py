@@ -338,11 +338,13 @@ def pre_predict_PILR(tdnas_df, out_dir, input_dir):
                 with open(fasta_ctxs, "w") as out_file:
                     for index, row in group_df.iterrows():
                         if row.Strand == 1:
-                            target_start = row.Start - row.bor_left[0]
-                            target_end = row.End - row.bor_left[0]
+                            target_coords = (abs(row.Start - row.bor_left[0]), abs(row.End - row.bor_left[0]))
+                            target_start = min(target_coords)
+                            target_end = max(target_coords)
                         else:
-                            target_start = row.bor_right[1] - row.End
-                            target_end = row.bor_right[1] - row.Start
+                            target_coords = (abs(row.bor_right[1] - row.End), abs(row.bor_right[1] - row.Start))
+                            target_start = min(target_coords)
+                            target_end = max(target_coords)
                         out_file.write(
                             f">{group_name}-{row.name}-{target_start + 1}-{target_end}\n{str(extract_sequence(f'{input_dir}/{row.File}.gbff', row.Strand, row.bor_left[0], row.bor_right[1], row.Chr_size))}\n")
             if not os.path.isfile(f"{out_dir}/sibelia_{group_name}/300/blocks_coords.txt"):
