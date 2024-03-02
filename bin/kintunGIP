@@ -100,8 +100,8 @@ class Kintun:
                 logging.info("%s looks good!" % file_ii)
             else:
                 logging.error(
-                    "Please check if file %s is a genbanj file!" % file_ii)
-                sys.exit("There is something wrong with one of your fasta files :(")
+                    "Please check if file %s is a genbank file!" % file_ii)
+                sys.exit("There is something wrong with one of your genbank files :(")
         logging.info("---------------")
         logging.info("Finally it's time for tDNAs clusterization")
         tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir, args.prefix, args.file_extension)
