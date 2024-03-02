@@ -333,8 +333,8 @@ def pre_predict_PILR(tdnas_df, out_dir, input_dir):
     ur_dr_dict = {}
     for group_name, group_df in tdnas_df.groupby("tdna_name"):
         if len(group_df) >= 2:
-            if not os.path.isfile(f"{out_dir}/{group_name}_ctx.fa"):
-                fasta_ctxs = f"{out_dir}/{group_name}_ctx.fa"
+            fasta_ctxs = f"{out_dir}/{group_name}_ctx.fa"
+            if not os.path.isfile(fasta_ctxs):
                 with open(fasta_ctxs, "w") as out_file:
                     for index, row in group_df.iterrows():
                         if row.Strand == 1:
