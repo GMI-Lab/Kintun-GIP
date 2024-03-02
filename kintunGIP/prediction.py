@@ -62,9 +62,12 @@ def check_cds(tdnas_df, cds_df, core_df):
                 DR_right[row.name] = max([range1 for range1 in DR_coords if
                                           check_if_overlap_circular(range1, (row.End, row.End + 250000), row.Chr_size)])
             else:
-                UR_left[row.name] = min([range1 for range1 in DR_coords if
+                try:
+                    UR_left[row.name] = min([range1 for range1 in DR_coords if
                                          check_if_overlap_circular(range1, (row.Start - 250000, row.Start),
                                                                    row.Chr_size)])
+                except ValueError:
+                    print(row)
                 DR_right[row.name] = max([range1 for range1 in UR_coords if
                                           check_if_overlap_circular(range1, (row.End, row.End + 250000), row.Chr_size)])
     return UR_left, DR_right
