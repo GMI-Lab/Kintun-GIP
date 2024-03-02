@@ -86,7 +86,7 @@ class Kintun:
         logging.info("%s was created" % args.results_dir)
         logging.info("Let's check your fasta files")
         logging.info("---------------")
-        # Check fasta files
+        # Check genbank files
         list_files = [os.path.join(args.fasta_dir, file)
                       for file in os.listdir(args.fasta_dir)
                       if file.endswith(args.file_extension)]
@@ -100,17 +100,11 @@ class Kintun:
                 logging.info("%s looks good!" % file_ii)
             else:
                 logging.error(
-                    "Please check if file %s is a fasta file!" % file_ii)
+                    "Please check if file %s is a genbanj file!" % file_ii)
                 sys.exit("There is something wrong with one of your fasta files :(")
         logging.info("---------------")
-        logging.info("Now let's annotate your genomes with Aragorn and Barrnap")
-        logging.info("---------------")
-        annotate_fasta.annotate_genome(list_files, args.results_dir,
-                                       args.file_extension, args.threads)
-        logging.info("---------------")
-        logging.info("All your genomes are now annotated, yay! :D")
         logging.info("Finally it's time for tDNAs clusterization")
-        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir, args.threads, args.prefix)
+        tdna_clusterization.tdna_clusterization(args.fasta_dir, args.results_dir, args.prefix, args.file_extension)
         logging.info("---------------")
         logging.info("It seems clusterization is over, you can find tDNAS information in the .CSV file")
         logging.info("For genomic islands prediction, run KintunGIP predict"
@@ -120,11 +114,16 @@ class Kintun:
     @staticmethod
     def predict():
         parser = argparse.ArgumentParser()
-        parser.add_argument("-i", type=str, action="store", dest='in_directory',
+        parser.add_argument("-i", type=str, action="store", dest='fasta_dir',
+                            help="Directory with fasta files (REQUIRED)", required=True)
+        parser.add_argument("-o", type=str, action="store", dest='in_directory',
                             help="Directory with KintunGIP clust results (REQUIRED)", required=True)
         parser.add_argument("-t", type=str, action="store", dest='threads',
                             default='8',
                             help="Number of threads for nucmer and SibeliaZ")
+        parser.add_argument("-p", type=str, action="store", dest='prefix',
+                            default='NNN', required=True,
+                            help="Prefix for the t(m)DNA clustering scheme (REQUIRED)")
         parser.add_argument("-log", type=str, action="store", dest='log_file',
                             default='',
                             help="Name of log file (Optional)")
@@ -134,12 +133,10 @@ class Kintun:
 
         if not os.path.exists(args.in_directory):
             sys.exit("Error: The specified output directory does not exist.")
-        else:
-            # Create the directory if it doesn't exist or after removal
-            csv_files = glob.glob(f'{args.in_directory}/*.csv')
-            tdna_scheme_file = [i for i in csv_files if "scheme" in i][0]
-            tdna_lcbs_file = [i for i in csv_files if "LCB" in i][0]
-            prediction.predict_gis(args.in_directory, tdna_scheme_file, tdna_lcbs_file, args.threads)
+        if not os.path.exists(args.fasta_dir):
+            sys.exit("Error: The specified directory with genbank files does not exist."
+        
+            prediction.predict_gis(args.fasta_dir, args.in_directory, args.prefix)
 
     @staticmethod
     def wapi():
