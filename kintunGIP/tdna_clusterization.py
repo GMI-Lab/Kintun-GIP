@@ -272,7 +272,8 @@ def create_dict_ctxs(df):
         # alphabet list
         alphabet_list = list(string.ascii_uppercase)
         double_letter_list = [letter1 + letter2 for letter1 in alphabet_list for letter2 in alphabet_list]
-        alphabet = alphabet_list + double_letter_list
+        triple_letter_list = [letter1 + letter2 for letter1 in double_letter_list for letter2 in alphabet_list]
+        alphabet = alphabet_list + double_letter_list + triple_letter_list
 
         # create a list of clusters and sort based in frequency (most common first)
         clusters = list(dict.fromkeys([item for items, c in Counter(labels).most_common() for item in [items] * c]))
