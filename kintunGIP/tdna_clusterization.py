@@ -33,7 +33,6 @@ def apply_anticodon_mapping(id_info):
         anticodon = id_info.split("-")[1].replace("(", "").replace(")", "").upper()
         return ANTICODON_MAPPING.get(anticodon, '')
 
-
 def find_neighbors(tRNA_row, cds_df, gene_ids):
     # Filter CDS rows based on the same "Strand"
     neighbors_cds = cds_df[cds_df['File'] == tRNA_row['File']]
@@ -44,7 +43,7 @@ def find_neighbors(tRNA_row, cds_df, gene_ids):
         ((neighbors_cds['Start'] > tRNA_row['End']) & (neighbors_cds['Start'] <= tRNA_row['Start']))
     ].tail(3)
     if len(up_neighbors) < 2:
-        up_neighbors = neighbors_cds.head(3)
+        up_neighbors = neighbors_cds.tail(3)
 
     down_neighbors = neighbors_cds[
         (neighbors_cds['Start'] > tRNA_row['End']) |
@@ -72,8 +71,6 @@ def find_neighbors(tRNA_row, cds_df, gene_ids):
     down_ids = down_neighbors[['ID']].values.tolist() if not down_neighbors.empty else []
 
     return (up_neigh, down_neigh, up_ids, down_ids)
-
-
 
 def parse_genbank_files_to_dataframe(genbank_files):
     data = {
