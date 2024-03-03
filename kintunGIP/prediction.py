@@ -3,7 +3,7 @@ from ast import literal_eval
 import os
 from Bio import SeqIO
 import subprocess
-
+import sys
 
 def check_if_overlap(range1, range2):
     return not (range1[1] < range2[0] or range2[1] < range1[0])
@@ -39,6 +39,7 @@ def check_cds(tdnas_df, cds_df, core_df):
                     UR_groups.append(i.replace("_Yes", "").replace("_No", ""))
                 for j in literal_eval(row.UP_neigh):
                     DR_groups.append(j.replace("_Yes", "").replace("_No", ""))
+
         UR_groups = list(set(UR_groups))
         DR_groups = list(set(DR_groups))
 
@@ -48,28 +49,41 @@ def check_cds(tdnas_df, cds_df, core_df):
             for k in UR_groups:
                 condition_row = cds_df['ID'] == core_df.at[k, row.File]
                 result = [tuple(x) for x in cds_df.loc[condition_row, ['Start', 'End']].to_numpy()]
-                if len(result) == 1:
+                if len(result) >= 1:
                     UR_coords.append(result[0])
+                else:
+                    continue
             for l in DR_groups:
                 condition_row = cds_df['ID'] == core_df.at[l, row.File]
                 result = [tuple(x) for x in cds_df.loc[condition_row, ['Start', 'End']].to_numpy()]
-                if len(result) == 1:
+                if len(result) >= 1:
                     DR_coords.append(result[0])
+                else:
+                    continue
             if row.Strand == 1:
-                UR_left[row.name] = min([range1 for range1 in UR_coords if
-                                         check_if_overlap_circular(range1, (row.Start - 250000, row.Start),
-                                                                   row.Chr_size)])
-                DR_right[row.name] = max([range1 for range1 in DR_coords if
-                                          check_if_overlap_circular(range1, (row.End, row.End + 250000), row.Chr_size)])
+                try:
+                    ctx_range = (row.Start - 200000, row.Start)
+                    UR_left[row.name] = min([range1 for range1 in UR_coords if check_if_overlap_circular(range1, ctx_range, row.Chr_size)])
+                except ValueError:
+                    print("1", row, "\n", ctx_range, UR_coords)
+                    sys.exit()
+                
+                try:
+                    DR_right[row.name] = max([range1 for range1 in DR_coords if check_if_overlap_circular(range1, (row.End, row.End + 200000), row.Chr_size)])
+                except ValueError:
+                    print("2", row, ctx_range, DR_groups, DR_coords)
             else:
                 try:
                     UR_left[row.name] = min([range1 for range1 in DR_coords if
-                                         check_if_overlap_circular(range1, (row.Start - 250000, row.Start),
+                                         check_if_overlap_circular(range1, (row.Start - 200000, row.Start),
                                                                    row.Chr_size)])
                 except ValueError:
-                    print(row)
-                DR_right[row.name] = max([range1 for range1 in UR_coords if
-                                          check_if_overlap_circular(range1, (row.End, row.End + 250000), row.Chr_size)])
+                    print("3", row, ctx_range, DR_groups, DR_coords)
+                
+                try:
+                    DR_right[row.name] = max([range1 for range1 in UR_coords if check_if_overlap_circular(range1, (row.End, row.End + 200000), row.Chr_size)])
+                except ValueError:
+                     print("4", row, ctx_range, DR_groups, DR_coords)
     return UR_left, DR_right
 
 
