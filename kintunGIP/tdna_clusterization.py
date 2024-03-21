@@ -2,7 +2,9 @@ import glob
 from Bio import SeqIO
 import os
 import pandas as pd
-
+from tqdm import tqdm
+import ast
+import sys
 
 # Dictionary mapping anticodon codes to values
 ANTICODON_MAPPING = dict(GLYACC='gly4', HISATG='his2', CYSACA='cys2', ARGACG='arg1', ASPATC='asp2',
@@ -130,7 +132,7 @@ def rrna_parse_genbank_files_to_dataframe(genbank_files):
         'Strand': []
     }
 
-    for genbank_file in genbank_files:
+    for genbank_file in tqdm(genbank_files, desc="Processing rDNAs in GenBank files"):
         records = SeqIO.parse(genbank_file, "genbank")
 
         for record in records:
@@ -159,7 +161,7 @@ def cds_parse_genbank_files_to_dataframe(genbank_files, core_tags):
         'Strand': []
     }
 
-    for genbank_file in genbank_files:
+    for genbank_file in tqdm(genbank_files, desc="Processing CDSs in GenBank files"):
         records = SeqIO.parse(genbank_file, "genbank")
         for record in records:
             for feature in [feature for feature in record.features if
@@ -217,39 +219,48 @@ def check_if_overlap_circular(range1, range2, chromosome_size):
     return False
 
 
-def check_cds(tdnas_df, cds_df, core_df):
+def check_cds(tdnas_df, cds_df, core_df, cds_df_dict):
     left_dict = {}
     right_dict = {}
-    for group_name, group_df in tdnas_df.groupby("tdna_name"):
+    tdnas_groups = tqdm(tdnas_df.groupby("tdna_name"), desc="Processing tDNAs", total=len(tdnas_df["tdna_name"].unique()))
+    for group_name, group_df in tdnas_groups:
+        LEFT_groups_dict = {}
+        RIGHT_groups_dict = {}
         LEFT_groups = []
         RIGHT_groups = []
         for index, row in group_df.iterrows():
-            for i in row.UP_neigh:
-                LEFT_groups.append(i.replace("_Yes", "").replace("_No", ""))
-            for j in row.DOWN_neigh:
-                RIGHT_groups.append(j.replace("_Yes", "").replace("_No", ""))
-            LEFT_groups = list(set(LEFT_groups))
-            RIGHT_groups = list(set(RIGHT_groups))
+            for index,value in enumerate(row.UP_neigh):
+                LEFT_groups.append(value.replace("_Yes", "").replace("_No", ""))
+                LEFT_groups_dict[(value.replace("_Yes", "").replace("_No", ""), row.File)] = row.UP_neigh_ori[index][0]
+            for index,value in enumerate(row.DOWN_neigh):
+                RIGHT_groups.append(value.replace("_Yes", "").replace("_No", ""))
+                RIGHT_groups_dict[(value.replace("_Yes", "").replace("_No", ""), row.File)] = row.DOWN_neigh_ori[index][0]
+        LEFT_groups = list(set(LEFT_groups))
+        RIGHT_groups = list(set(RIGHT_groups))
         for index, row in group_df.iterrows():
             LEFT_coords = []
             RIGHT_coords = []
             for k in LEFT_groups:
-                condition_row = cds_df['ID'] == core_df.at[k, row.File]
-                result = [tuple(x) for x in cds_df.loc[condition_row, ['Start', 'End']].to_numpy()]
-                if len(result) >= 1:
-                    LEFT_coords.append(result[0])
-                else:
+                try:
+                    LEFT_coords.append(cds_df_dict[(LEFT_groups_dict[(k, row.File)], row.File)])
+                except KeyError:
                     continue
             for l in RIGHT_groups:
-                condition_row = cds_df['ID'] == core_df.at[l, row.File]
-                result = [tuple(x) for x in cds_df.loc[condition_row, ['Start', 'End']].to_numpy()]
-                if len(result) >= 1:
-                    RIGHT_coords.append(result[0])
-                else:
+                try:
+                    RIGHT_coords.append(cds_df_dict[(RIGHT_groups_dict[(l, row.File)], row.File)])
+                except KeyError:
                     continue
-            ctx_range = (row.Start - 250000, row.End + 250000)
-            left_dict[row.name] = (min([range1 for range1 in LEFT_coords if check_if_overlap_circular(range1, ctx_range, row.Chr_size)]))
-            right_dict[row.name] = (max([range1 for range1 in RIGHT_coords if check_if_overlap_circular(range1, ctx_range, row.Chr_size)]))
+            ctx_range = (row.Start - 800000, row.End + 800000)
+            try:
+                left_dict[row.name] = (min([range1 for range1 in LEFT_coords if check_if_overlap_circular(range1, ctx_range, row.Chr_size)]))
+            except ValueError:
+               print(row)
+               sys.exit()
+            try:
+                right_dict[row.name] = (max([range1 for range1 in RIGHT_coords if check_if_overlap_circular(range1, ctx_range, row.Chr_size)]))
+            except ValueError:
+                print(row)
+                sys.exit()
     return right_dict, left_dict
 
 
@@ -317,36 +328,46 @@ def get_range(row, dict_pilrs):
 
 
 def tdna_clusterization(input_folder, output_folder, prefix, format):
-    # Example: Parse a list of GenBank files and create a DataFrame
+    # Parse a list of GenBank files and create a DataFrame
     genbank_files_list = glob.glob(f"{input_folder}/*.{format}")
     tdnas_df = parse_genbank_files_to_dataframe(genbank_files_list)
     rdnas_df = rrna_parse_genbank_files_to_dataframe(genbank_files_list)
+    rdnas_df.to_csv(f"{output_folder}/{prefix}_rDNAs.csv")
 
-    panaroo_roary = pd.read_csv(f"{input_folder}/gene_presence_absence_roary.csv", header=0, low_memory=False)
+    # Decorate pandas' apply functions with tqdm
+    tqdm.pandas()
+
+    # Accelerate the processing of pd.read_csv with tqdm
+    panaroo_roary = pd.read_csv(f"{input_folder}/gene_presence_absence_roary.csv", header=0, low_memory=False).progress_apply(lambda x: x)
     panaroo_roary = panaroo_roary.loc[(panaroo_roary["No. isolates"] > 0.9 * len(genbank_files_list)) & (
                 panaroo_roary["No. sequences"] > 0.9 * len(genbank_files_list))]
-  
+
+    panaroo_roary.to_csv(f"{output_folder}/{prefix}_coregenome_detail.csv")
+
     # Create a dictionary
     core_tags = {}
 
-    # Iterate over columns starting from the 15th column
-    for column in panaroo_roary.columns[14:]:
+    # Use tqdm to iterate over columns, starting from the 15th column
+    for column in tqdm(panaroo_roary.columns[14:], desc="Processing columns"):
+        # Split values by semicolon if present, and convert to list
         values = panaroo_roary[column].apply(lambda x: x.split(';') if ';' in str(x) else [x]).tolist()
+        # Store values in the core_tags dictionary
         core_tags[column] = values
 
     gene_ids = {}
-    for index, row in panaroo_roary.iterrows():
+    # Use tqdm to iterate over rows of the DataFrame
+    for index, row in tqdm(panaroo_roary.iterrows(), total=len(panaroo_roary), desc="Processing rows"):
         key = row['Gene']
-        values = {}
-
         # Iterate over columns starting from the 15th column
         for column, value in row.iloc[14:].items():
-            # Split values if semicolon is present
+            # Split values by semicolon if present
             value_list = str(value).split(';')
             for split_value in value_list:
                 gene_ids[split_value] = key
 
     cds_df = cds_parse_genbank_files_to_dataframe(genbank_files_list, core_tags)
+    cds_df.to_csv(f"{output_folder}/{prefix}_core_CDSs.csv")
+
     tdnas_df["ANT"] = tdnas_df["Product"].apply(apply_anticodon_mapping)
     tdnas_df = tdnas_df[tdnas_df['Product'] != 'tRNA-Xxx']
     neighbors_series = tdnas_df.apply(lambda row: find_neighbors(row, cds_df, gene_ids), axis=1)
@@ -355,28 +376,41 @@ def tdna_clusterization(input_folder, output_folder, prefix, format):
     tdnas_df['UP_neigh_ori'] = neighbors_series.apply(lambda x: x[2])
     tdnas_df['DOWN_neigh_ori'] = neighbors_series.apply(lambda x: x[3])
     tdnas_df["tdnas_neigh"] = tdnas_df.apply(tdnas_neigh_finder, args=(tdnas_df,), axis=1)
-    tdnas_df.to_csv(f"{output_folder}/{prefix}_prev_tDNAs.csv")
+
+    def safe_literal_eval(cell):
+        try:
+            return ast.literal_eval(cell)
+        except (SyntaxError, ValueError):
+            return cell
+
+    tdnas_df = tdnas_df.map(safe_literal_eval)
+
     tdnas_df["up_code"] = tdnas_df.apply(set_markers, axis=1)
 
-    # try to mapping (CHECK)
+    # try to mapping 
     mapping = {}
-    for group_name, group_df in tdnas_df.groupby("ANT"):
+    for group_name, group_df in tqdm(tdnas_df.groupby("ANT"), desc="Mapping groups"):
+        # Sort values and count occurrences
         sorted_counts = group_df['up_code'].value_counts().sort_values(ascending=False)
+        # Generate labels and update the mapping dictionary
         part_mapping = {value: generate_label(i, group_name, prefix) for i, value in enumerate(sorted_counts.index)}
         mapping.update(part_mapping)
 
     tdnas_df['tdna_name'] = tdnas_df['up_code'].map(mapping)
 
     # check left and right ctx
-    panaroo_roary.set_index("Gene", inplace=True)
-    right_blocks, left_blocks = check_cds(tdnas_df, cds_df, panaroo_roary)
+
+    cds_df_dict = {}
+    for index, row in cds_df.iterrows():
+        cds_df_dict[(row.ID,row.File)] = (row.Start,row.End)
+    right_blocks, left_blocks = check_cds(tdnas_df, cds_df, panaroo_roary, cds_df_dict)
     tdnas_df["block_left"] = tdnas_df.apply(get_range, args=(left_blocks,), axis=1)
     tdnas_df["block_right"] = tdnas_df.apply(get_range, args=(right_blocks,), axis=1)
 
     # check for upstream and downstream pilrs
     tdnas_df["PILR_UR"] = tdnas_df.apply(PILR_prediction, args=("up",), axis=1)
     tdnas_df["PILR_DR"] = tdnas_df.apply(PILR_prediction, args=("down",), axis=1)
-    
+
     # Calculate Prevalence
     value_counts = tdnas_df["tdna_name"].value_counts()
     n_strain = tdnas_df["File"].nunique()
@@ -386,7 +420,7 @@ def tdna_clusterization(input_folder, output_folder, prefix, format):
 
     # Add the prevalence column to the dataframe
     tdnas_df['Prevalence'] = prevalence
-    
+
     for index, row in tdnas_df.iterrows():
         if row["PILR_DR"] != "None":
             start = row['PILR_DR'][0]
@@ -410,16 +444,13 @@ def tdna_clusterization(input_folder, output_folder, prefix, format):
             # If high prevalence tRNA genes are found, update the range to zero
             if not high_prevalence_tRNAs.empty:
                 tdnas_df.at[index, 'PILR_UR'] = "None"
-                
+
     for index, row in tdnas_df.iterrows():
         if row["PILR_DR"] != "None":
             start = row['PILR_DR'][0]
             end = row['PILR_DR'][1]
             file = row["File"]
             other_rRNAs = rdnas_df[(rdnas_df['Start'] >= start) & (rdnas_df['End'] <= end)  & (rdnas_df.File == file)]
-            # Check if other tRNA genes have a prevalence over 0.8
-            #high_prevalence_tRNAs = other_tRNAs[other_tRNAs['Prevalence'] > 0.8]
-            # If high prevalence tRNA genes are found, update the range to zero
             if not other_rRNAs.empty:
                 tdnas_df.at[index, 'PILR_DR'] = "None"
 
@@ -429,12 +460,10 @@ def tdna_clusterization(input_folder, output_folder, prefix, format):
             end = row['PILR_UR'][1]
             file = row["File"]
             other_rRNAs = rdnas_df[(rdnas_df['Start'] >= start) & (rdnas_df['End'] <= end)  & (rdnas_df.File == file)]
-            # Check if other tRNA genes have a prevalence over 0.8
-            #high_prevalence_tRNAs = other_tRNAs[other_tRNAs['Prevalence'] > 0.8]
-            # If high prevalence tRNA genes are found, update the range to zero
             if not other_rRNAs.empty:
                 tdnas_df.at[index, 'PILR_DR'] = "None"
 
     tdnas_df.to_csv(f"{output_folder}/{prefix}_tDNAs.csv")
     cds_df.to_csv(f"{output_folder}/{prefix}_core_CDSs.csv")
     panaroo_roary.to_csv(f"{output_folder}/{prefix}_coregenome_detail.csv")
+  
