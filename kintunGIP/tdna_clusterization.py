@@ -327,6 +327,13 @@ def get_range(row, dict_pilrs):
     return dict_pilrs[row.name]
 
 
+def safe_literal_eval(cell):
+    try:
+        return ast.literal_eval(cell)
+    except (SyntaxError, ValueError):
+        return cell
+
+
 def tdna_clusterization(input_folder, output_folder, prefix, format):
     # Parse a list of GenBank files and create a DataFrame
     genbank_files_list = glob.glob(f"{input_folder}/*.{format}")
@@ -376,12 +383,6 @@ def tdna_clusterization(input_folder, output_folder, prefix, format):
     tdnas_df['UP_neigh_ori'] = neighbors_series.apply(lambda x: x[2])
     tdnas_df['DOWN_neigh_ori'] = neighbors_series.apply(lambda x: x[3])
     tdnas_df["tdnas_neigh"] = tdnas_df.apply(tdnas_neigh_finder, args=(tdnas_df,), axis=1)
-
-    def safe_literal_eval(cell):
-        try:
-            return ast.literal_eval(cell)
-        except (SyntaxError, ValueError):
-            return cell
 
     tdnas_df = tdnas_df.map(safe_literal_eval)
 
