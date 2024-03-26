@@ -9,7 +9,7 @@ import numpy as np
 import collections
 import pyhmmer
 from tqdm import tqdm
-
+import pkg_resources
 
 def extract_cds_from_range(genbank_file, start, end):
     cds_records = []
