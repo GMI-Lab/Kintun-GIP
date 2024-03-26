@@ -139,7 +139,7 @@ class Kintun:
         if not os.path.exists(args.fasta_dir):
             sys.exit("Error: The specified directory with genbank files does not exist.")
         
-        prediction.predict_gis(args.fasta_dir, args.in_directory, args.prefix, args.file_extension)
+        prediction.prediction(args.fasta_dir, args.in_directory, args.prefix, args.file_extension)
 
     @staticmethod
     def wapi():
