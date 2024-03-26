@@ -5,7 +5,7 @@ setup(
     version='0.9.0',
     packages=["kintunGIP"],
     scripts=["bin/kintunGIP"],
-    package_data={'kintunGIP': ['data/int_bact_pha.hmm']}
+    package_data={'kintunGIP': ['data/int_bact_pha.hmm']},
     install_requires=[
         'biopython>=1.80',
         'glob2>=0.7',
