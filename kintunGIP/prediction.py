@@ -2,7 +2,7 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.SeqUtils import gc_fraction
-import repeatfinder as rf
+import repeatfinder
 import pandas as pd
 from ast import literal_eval
 import numpy as np
@@ -113,7 +113,7 @@ def check_repeats_presence(genbank_file, start, end, sense, locus, gene_size):
         range_start = (new_end - new_start) - 100 - gene_size
         range_end = (new_end - new_start)
 
-    repeats = rf.get_repeats(str(record.seq[new_start:new_end]), gap=3)
+    repeats = repeatfinder.get_repeats(str(record.seq[new_start:new_end]), gap=3)
     filtered_repeats = [check_tuple_overlap(tuple_values, (range_start, range_end)) for tuple_values in repeats]
 
     filtered_repeats = [i for i in filtered_repeats if i is not None]
