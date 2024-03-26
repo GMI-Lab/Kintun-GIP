@@ -121,6 +121,9 @@ class Kintun:
         parser.add_argument("-t", type=str, action="store", dest='threads',
                             default='8',
                             help="Number of threads for nucmer and SibeliaZ")
+        parser.add_argument("-x", type=str, action="store", dest='file_extension',
+                            help="Extension for fasta files (REQUIRED;default: fasta)",
+                            default='fasta', required=True)
         parser.add_argument("-p", type=str, action="store", dest='prefix',
                             default='NNN', required=True,
                             help="Prefix for the t(m)DNA clustering scheme (REQUIRED)")
@@ -136,7 +139,7 @@ class Kintun:
         if not os.path.exists(args.fasta_dir):
             sys.exit("Error: The specified directory with genbank files does not exist.")
         
-        prediction.predict_gis(args.in_directory, args.fasta_dir, args.prefix)
+        prediction.predict_gis(args.fasta_dir, args.in_directory, args.prefix, args.file_extension)
 
     @staticmethod
     def wapi():
