@@ -165,14 +165,23 @@ def check_properties(row, sense, indir, ext, hmm):
         return ()
 
 
-def prediction(indir, output_folder, prefix, extension):
+def prediction(indir, output_folder, prefix, extension, chunk_size=1000):
     tqdm.pandas()
     tdnas_df = pd.read_csv(f"{output_folder}/{prefix}_tDNAs.csv", header=0, index_col=0)
     cds_df = pd.read_csv(f"{output_folder}/{prefix}_core_CDSs.csv", header=0, index_col=0)
     panaroo_roary = pd.read_csv(f"{output_folder}/{prefix}_coregenome_detail.csv", header=0, index_col=0)
     with pyhmmer.plan7.HMMFile(pkg_resources.resource_stream('kintunGIP', 'data/int_bact_pha.hmm')) as hmm_file:
         hmm = hmm_file.read()
-    tdnas_df["diag_UR"] = tdnas_df.progress_apply(check_properties, args=("UR", indir, extension, hmm,), axis=1)
-    tdnas_df["diag_DR"] = tdnas_df.progress_apply(check_properties, args=("DR", indir, extension, hmm,), axis=1)
-    tdnas_df.to_csv(f"{output_folder}/{prefix}_EMGs_prediction.csv")
+    
+    # Split the DataFrame into chunks and process each chunk separately
+    chunks = [tdnas_df[i:i + chunk_size] for i in range(0, len(tdnas_df), chunk_size)]
+    results = []
+    for chunk in tqdm(chunks, desc="Processing chunks"):
+        chunk["diag_UR"] = chunk.progress_apply(check_properties, args=("UR", indir, extension, hmm,), axis=1)
+        chunk["diag_DR"] = chunk.progress_apply(check_properties, args=("DR", indir, extension, hmm,), axis=1)
+        results.append(chunk)
+    
+    # Concatenate the results and save to CSV
+    result_df = pd.concat(results)
+    result_df.to_csv(f"{output_folder}/{prefix}_EMGs_prediction.csv")
 
